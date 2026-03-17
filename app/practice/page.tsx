@@ -2,12 +2,14 @@
 
 import { useAuth, useVocabulary } from "@/lib/hooks";
 import Flashcard from "@/components/Flashcard";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export const dynamic = "force-dynamic";
 
 export default function PracticePage() {
   const { user, loading: authLoading } = useAuth();
   const { words, loading: vocabLoading } = useVocabulary(user?.uid);
+  const { t } = useLanguage();
 
   const loading = authLoading || vocabLoading;
 
@@ -17,10 +19,10 @@ export default function PracticePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-2 text-center text-2xl font-bold text-foreground">
-        Karteikarten-Übung
+        {t("practice.title")}
       </h1>
       <p className="mb-8 text-center text-muted-foreground">
-        Wiederhole deine gespeicherten Vokabeln mit Karteikarten.
+        {t("practice.subtitle")}
       </p>
 
       {loading ? (
@@ -33,8 +35,8 @@ export default function PracticePage() {
 
       {!loading && practiceWords.length > 0 && (
         <div className="mt-8 text-center text-xs text-muted-foreground">
-          {words.filter((w) => w.status === "known").length} Wörter als gelernt markiert
-          &middot; {practiceWords.length} Wörter zum Üben
+          {words.filter((w) => w.status === "known").length} {t("flash.learned")}
+          &middot; {practiceWords.length} {t("nav.practice")}
         </div>
       )}
     </div>

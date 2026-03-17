@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type { QuranVerse, QuranWord } from "@/types";
 import Word from "./Word";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface VerseProps {
   verse: QuranVerse;
@@ -15,10 +16,11 @@ interface VerseProps {
 }
 
 export default function Verse({ verse, onWordClick, isPlaying, audioTime, onPlay, onPlayFromHere, onStop }: VerseProps) {
+  const { t } = useLanguage();
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
 
   const germanTranslation = verse.translations?.[0]?.text || "";
-  const words = useMemo(() => verse.words?.filter((w) => w.text_uthmani) || [], [verse.words]);
+  const words = useMemo(() => verse.words?.filter((w) => w.text_uthmani && w.char_type_name !== "end") || [], [verse.words]);
 
   // Calculate highlighted word index based on audio time (works for all playback modes)
   const highlightedWordIndex = useMemo(() => {
@@ -60,7 +62,7 @@ export default function Verse({ verse, onWordClick, isPlaying, audioTime, onPlay
               <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
               </svg>
-              Stopp
+              {t("verse.stop")}
             </button>
           ) : (
             <>
@@ -90,7 +92,7 @@ export default function Verse({ verse, onWordClick, isPlaying, audioTime, onPlay
         </div>
         {savedFeedback && (
           <span className="text-xs text-primary animate-pulse">
-            ✓ &ldquo;{savedFeedback}&rdquo; gespeichert
+            ✓ &ldquo;{savedFeedback}&rdquo; {t("surah.saved")}
           </span>
         )}
       </div>

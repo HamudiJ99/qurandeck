@@ -4,16 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
-
-const links = [
-  { href: "/quran", label: "Quran" },
-  { href: "/vocabulary", label: "Vokabeln" },
-  { href: "/practice", label: "Übung" },
-];
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { lang, setLang, t } = useLanguage();
+
+  const links = [
+    { href: "/quran", label: t("nav.quran") },
+    { href: "/vocabulary", label: t("nav.vocabulary") },
+    { href: "/practice", label: t("nav.practice") },
+  ];
+
+  const toggleLang = () => setLang(lang === "de" ? "en" : "de");
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
@@ -37,16 +41,29 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          <button
+            onClick={toggleLang}
+            className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title={t("lang.switch")}
+          >
+            {lang === "de" ? "DE" : "EN"}
+          </button>
           <ThemeToggle />
         </div>
 
         {/* Mobile menu button */}
         <div className="flex items-center gap-2 sm:hidden">
+          <button
+            onClick={toggleLang}
+            className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {lang === "de" ? "DE" : "EN"}
+          </button>
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2 text-muted-foreground"
-            aria-label="Menü umschalten"
+            aria-label="Menu"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {mobileOpen ? (

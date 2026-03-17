@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks";
 import { saveWord } from "@/lib/hooks";
 import Verse from "@/components/Verse";
 import { AVAILABLE_SURAHS } from "@/lib/quranApi";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface SurahClientProps {
   verses: QuranVerse[];
@@ -30,6 +31,7 @@ function getAudioUrl(verseKey: string): string {
 
 export default function SurahClient({ verses, surahId, surahName }: SurahClientProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Unified audio state: playingVerseIndex = which verse is playing (-1 = none)
@@ -45,20 +47,17 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     (word: QuranWord, verseKey: string) => {
       if (!user) return;
       const [, ayah] = verseKey.split(":");
-      const verseIndex = verses.findIndex((v) => v.verse_key === verseKey);
-      const germanTranslation = verses[verseIndex]?.translations?.[0]?.text || "";
       saveWord({
         userId: user.uid,
         arabicWord: word.text_uthmani,
         translation: word.translation?.text || "",
-        translationDe: germanTranslation,
         surah: surahId,
         ayah: parseInt(ayah, 10),
         status: "new",
         createdAt: Date.now(),
       });
     },
-    [user, surahId, verses]
+    [user, surahId]
   );
 
   // Stop all playback
@@ -153,7 +152,7 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
           {surahInfo?.name_simple} – {surahInfo?.name_german}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {verses.length} Verse
+          {verses.length} {t("surah.verses")}
         </p>
 
         {/* Play all / Stop button */}
@@ -166,14 +165,14 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
               </svg>
-              Stoppen
+              {t("surah.stop")}
             </>
           ) : (
             <>
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
-              Gesamte Sure abspielen
+              {t("surah.playAll")}
             </>
           )}
         </button>

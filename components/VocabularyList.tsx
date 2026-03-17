@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { VocabularyEntry } from "@/types";
 import { updateWordStatus, removeWord } from "@/lib/hooks";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface VocabularyListProps {
   words: VocabularyEntry[];
@@ -10,6 +11,7 @@ interface VocabularyListProps {
 }
 
 export default function VocabularyList({ words, loading }: VocabularyListProps) {
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<"all" | "new" | "learning" | "known">("all");
 
   const filtered = filter === "all" ? words : words.filter((w) => w.status === filter);
@@ -21,10 +23,10 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
   };
 
   const statusLabels: Record<string, string> = {
-    all: "Alle",
-    new: "Neu",
-    learning: "Lernend",
-    known: "Gelernt",
+    all: t("vocab.all"),
+    new: t("vocab.new"),
+    learning: t("vocab.learning"),
+    known: t("vocab.known"),
   };
 
   if (loading) {
@@ -57,9 +59,7 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-10 text-center">
           <p className="text-muted-foreground">
-            {words.length === 0
-              ? "Noch keine Vokabeln gespeichert. Klicke auf arabische Wörter beim Quran-Lesen, um sie zu speichern."
-              : "Keine Wörter mit diesem Filter."}
+            {words.length === 0 ? t("vocab.empty") : t("vocab.noFilter")}
           </p>
         </div>
       ) : (
@@ -75,21 +75,9 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
                   {statusLabels[word.status]}
                 </span>
               </div>
-              <p className="mb-1 text-sm text-foreground">
-                {word.translationDe ? (
-                  <span dangerouslySetInnerHTML={{ __html: word.translationDe }} />
-                ) : (
-                  word.translation
-                )}
-              </p>
-              {word.translationDe && word.translation && (
-                <p className="mb-1 text-xs text-muted-foreground">
-                  <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-medium">EN</span>{" "}
-                  {word.translation}
-                </p>
-              )}
+              <p className="mb-1 text-sm text-foreground">{word.translation}</p>
               <p className="mb-3 text-xs text-muted-foreground">
-                Sure {word.surah}, Ayah {word.ayah}
+                {t("vocab.surah")} {word.surah}, {t("vocab.ayah")} {word.ayah}
               </p>
               <div className="flex gap-2">
                 {word.status !== "learning" && (
@@ -97,7 +85,7 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
                     onClick={() => word.id && updateWordStatus(word.id, "learning")}
                     className="rounded-md bg-amber-100 px-2 py-1 text-xs text-amber-800 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:hover:bg-amber-800"
                   >
-                    Lernend
+                    {t("vocab.learning")}
                   </button>
                 )}
                 {word.status !== "known" && (
@@ -105,14 +93,14 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
                     onClick={() => word.id && updateWordStatus(word.id, "known")}
                     className="rounded-md bg-green-100 px-2 py-1 text-xs text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
                   >
-                    Gelernt
+                    {t("vocab.known")}
                   </button>
                 )}
                 <button
                   onClick={() => word.id && removeWord(word.id)}
                   className="ml-auto rounded-md bg-red-100 px-2 py-1 text-xs text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
                 >
-                  Entfernen
+                  {t("vocab.remove")}
                 </button>
               </div>
             </div>

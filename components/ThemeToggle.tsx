@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { t } = useLanguage();
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -29,8 +31,8 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      aria-label={theme === "light" ? "Dunkelmodus aktivieren" : "Hellmodus aktivieren"}
-      title={theme === "light" ? "Dunkelmodus" : "Hellmodus"}
+      aria-label={theme === "light" ? t("theme.activateDark") : t("theme.activateLight")}
+      title={theme === "light" ? t("theme.dark") : t("theme.light")}
     >
       {theme === "light" ? (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

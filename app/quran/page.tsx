@@ -1,16 +1,16 @@
-import SurahList from "@/components/SurahList";
+"use client";
 
-export const metadata = {
-  title: "Quran lesen - QuranDeck",
-  description: "Den Quran lesen und lernen mit Wort-für-Wort Übersetzung",
-};
+import SurahList from "@/components/SurahList";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function QuranPage() {
+  const { t } = useLanguage();
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-2 text-2xl font-bold text-foreground">Quran lesen</h1>
+      <h1 className="mb-2 text-2xl font-bold text-foreground">{t("quran.title")}</h1>
       <p className="mb-8 text-muted-foreground">
-        Wähle eine Sure aus. Klicke auf ein arabisches Wort, um es in deinen Vokabeln zu speichern.
+        {t("quran.subtitle")}
       </p>
       <SurahList />
     </div>

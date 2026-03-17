@@ -2,6 +2,7 @@ export interface QuranWord {
   id: number;
   position: number;
   audio_url: string | null;
+  char_type_name?: string;
   text_uthmani: string;
   translation: {
     text: string;

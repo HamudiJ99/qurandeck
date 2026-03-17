@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { AVAILABLE_SURAHS } from "@/lib/quranApi";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function SurahList() {
+  const { t } = useLanguage();
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {AVAILABLE_SURAHS.map((surah) => (
@@ -23,7 +28,7 @@ export default function SurahList() {
               {surah.name_simple} – {surah.name_german}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {surah.verses_count} Verse
+              {surah.verses_count} {t("home.verses")}
             </p>
           </div>
         </Link>

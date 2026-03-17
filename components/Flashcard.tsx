@@ -3,12 +3,14 @@
 import { useState, useCallback } from "react";
 import type { VocabularyEntry } from "@/types";
 import { updateWordStatus } from "@/lib/hooks";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface FlashcardProps {
   words: VocabularyEntry[];
 }
 
 export default function Flashcard({ words }: FlashcardProps) {
+  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -42,10 +44,10 @@ export default function Flashcard({ words }: FlashcardProps) {
     return (
       <div className="rounded-xl border border-border bg-card p-10 text-center">
         <p className="text-lg text-muted-foreground">
-          Noch keine Vokabeln zum Üben vorhanden.
+          {t("flash.empty")}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Gehe zum Quran-Reader und klicke auf arabische Wörter, um sie zu speichern.
+          {t("flash.emptyHint")}
         </p>
       </div>
     );
@@ -56,10 +58,10 @@ export default function Flashcard({ words }: FlashcardProps) {
       <div className="rounded-xl border border-border bg-card p-10 text-center">
         <div className="mb-4 text-5xl">🎉</div>
         <p className="text-lg font-semibold text-foreground">
-          Alle Karten durchgearbeitet!
+          {t("flash.done")}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Du hast alle {completed.size} Wörter als gelernt markiert.
+          {t("flash.learned")} — {completed.size}
         </p>
         <button
           onClick={() => {
@@ -68,7 +70,7 @@ export default function Flashcard({ words }: FlashcardProps) {
           }}
           className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/80"
         >
-          Nochmal üben
+          {t("flash.again")}
         </button>
       </div>
     );
@@ -78,10 +80,10 @@ export default function Flashcard({ words }: FlashcardProps) {
     <div className="flex flex-col items-center">
       {/* Progress */}
       <div className="mb-6 text-sm text-muted-foreground">
-        Karte {Math.min(currentIndex + 1, remaining.length)} von {remaining.length}
+        {t("flash.card")} {Math.min(currentIndex + 1, remaining.length)} {t("flash.of")} {remaining.length}
         {completed.size > 0 && (
           <span className="ml-2 text-green-600 dark:text-green-400">
-            ({completed.size} gelernt)
+            ({completed.size} {t("flash.learned")})
           </span>
         )}
       </div>
@@ -96,7 +98,7 @@ export default function Flashcard({ words }: FlashcardProps) {
           <div className="flashcard-front absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 shadow-lg">
             <span className="arabic-text text-4xl">{currentWord.arabicWord}</span>
             <p className="mt-4 text-xs text-muted-foreground">
-              Tippe, um die Übersetzung zu sehen
+              {t("flash.tapToSee")}
             </p>
           </div>
 
@@ -105,24 +107,11 @@ export default function Flashcard({ words }: FlashcardProps) {
             <span className="arabic-text mb-3 text-2xl text-muted-foreground">
               {currentWord.arabicWord}
             </span>
-            {currentWord.translationDe ? (
-              <>
-                <p
-                  className="text-center text-lg font-semibold text-foreground"
-                  dangerouslySetInnerHTML={{ __html: currentWord.translationDe }}
-                />
-                <p className="mt-1 text-center text-xs text-muted-foreground">
-                  <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-medium">EN</span>{" "}
-                  {currentWord.translation}
-                </p>
-              </>
-            ) : (
-              <p className="text-xl font-semibold text-foreground">
-                {currentWord.translation}
-              </p>
-            )}
+            <p className="text-xl font-semibold text-foreground">
+              {currentWord.translation}
+            </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Sure {currentWord.surah}, Ayah {currentWord.ayah}
+              {t("vocab.surah")} {currentWord.surah}, {t("vocab.ayah")} {currentWord.ayah}
             </p>
           </div>
         </div>
@@ -134,19 +123,19 @@ export default function Flashcard({ words }: FlashcardProps) {
           onClick={handleStillLearning}
           className="rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amber-600"
         >
-          Noch lernen
+          {t("flash.stillLearning")}
         </button>
         <button
           onClick={handleSkip}
           className="rounded-lg bg-muted px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80"
         >
-          Überspringen
+          {t("flash.skip")}
         </button>
         <button
           onClick={handleKnow}
           className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
         >
-          Kann ich
+          {t("flash.know")}
         </button>
       </div>
     </div>
