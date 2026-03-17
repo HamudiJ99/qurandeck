@@ -3,46 +3,32 @@
 import { useState, useCallback, useMemo } from "react";
 import type { QuranVerse, QuranWord } from "@/types";
 import Word from "./Word";
-import AudioPlayer from "./AudioPlayer";
 
 interface VerseProps {
   verse: QuranVerse;
   onWordClick: (word: QuranWord, verseKey: string) => void;
-  isCurrentlyPlaying?: boolean;
-  globalAudioTime?: number;
+  isPlaying?: boolean;
+  audioTime?: number;
+  onPlay: () => void;
+  onPlayFromHere: () => void;
+  onStop: () => void;
 }
 
-export default function Verse({ verse, onWordClick, isCurrentlyPlaying, globalAudioTime }: VerseProps) {
-  const [localHighlightIndex, setLocalHighlightIndex] = useState<number>(-1);
+export default function Verse({ verse, onWordClick, isPlaying, audioTime, onPlay, onPlayFromHere, onStop }: VerseProps) {
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
 
   const germanTranslation = verse.translations?.[0]?.text || "";
   const words = useMemo(() => verse.words?.filter((w) => w.text_uthmani) || [], [verse.words]);
 
-  // Calculate highlighted word index based on audio time
+  // Calculate highlighted word index based on audio time (works for all playback modes)
   const highlightedWordIndex = useMemo(() => {
-    // If being played from the global "play all" button
-    if (isCurrentlyPlaying && globalAudioTime !== undefined && words.length > 0) {
+    if (isPlaying && audioTime !== undefined && words.length > 0) {
       const estimatedWordDuration = 0.5;
-      const idx = Math.floor(globalAudioTime / estimatedWordDuration);
+      const idx = Math.floor(audioTime / estimatedWordDuration);
       return Math.min(idx, words.length - 1);
     }
-    // If played locally via per-verse button
-    return localHighlightIndex;
-  }, [isCurrentlyPlaying, globalAudioTime, localHighlightIndex, words.length]);
-
-  const handleTimeUpdate = useCallback(
-    (currentTime: number) => {
-      if (words.length === 0) return;
-      const estimatedWordDuration = 0.5;
-      const wordIndex = Math.floor(currentTime / estimatedWordDuration);
-      setLocalHighlightIndex(Math.min(wordIndex, words.length - 1));
-    },
-    [words.length]
-  );
-
-  const handleEnded = useCallback(() => setLocalHighlightIndex(-1), []);
-  const handlePause = useCallback(() => setLocalHighlightIndex(-1), []);
+    return -1;
+  }, [isPlaying, audioTime, words.length]);
 
   const handleWordClick = useCallback(
     (word: QuranWord) => {
@@ -55,21 +41,51 @@ export default function Verse({ verse, onWordClick, isCurrentlyPlaying, globalAu
 
   return (
     <div className={`rounded-xl border bg-card p-5 transition-colors ${
-      isCurrentlyPlaying ? "border-primary shadow-md" : "border-border hover:border-primary/30"
+      isPlaying ? "border-primary shadow-md" : "border-border hover:border-primary/30"
     }`}>
       {/* Verse header */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
             {verse.verse_number}
           </span>
-          {!isCurrentlyPlaying && (
-            <AudioPlayer
-              verseKey={verse.verse_key}
-              onTimeUpdate={handleTimeUpdate}
-              onEnded={handleEnded}
-              onPause={handlePause}
-            />
+
+          {/* Play single verse */}
+          {isPlaying ? (
+            <button
+              onClick={onStop}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+              title="Stoppen"
+            >
+              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+              Stopp
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onPlay}
+                className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                title="Diesen Vers abspielen"
+              >
+                <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+              <button
+                onClick={onPlayFromHere}
+                className="inline-flex items-center gap-1 rounded-lg bg-primary/5 px-2.5 py-1.5 text-xs font-medium text-primary/70 transition-colors hover:bg-primary/15 hover:text-primary"
+                title="Ab hier abspielen"
+              >
+                <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                <svg className="h-3 w-3 -ml-1.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+            </>
           )}
         </div>
         {savedFeedback && (

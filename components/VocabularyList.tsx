@@ -75,7 +75,19 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
                   {statusLabels[word.status]}
                 </span>
               </div>
-              <p className="mb-1 text-sm text-foreground">{word.translation}</p>
+              <p className="mb-1 text-sm text-foreground">
+                {word.translationDe ? (
+                  <span dangerouslySetInnerHTML={{ __html: word.translationDe }} />
+                ) : (
+                  word.translation
+                )}
+              </p>
+              {word.translationDe && word.translation && (
+                <p className="mb-1 text-xs text-muted-foreground">
+                  <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-medium">EN</span>{" "}
+                  {word.translation}
+                </p>
+              )}
               <p className="mb-3 text-xs text-muted-foreground">
                 Sure {word.surah}, Ayah {word.ayah}
               </p>

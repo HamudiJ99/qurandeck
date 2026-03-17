@@ -105,9 +105,22 @@ export default function Flashcard({ words }: FlashcardProps) {
             <span className="arabic-text mb-3 text-2xl text-muted-foreground">
               {currentWord.arabicWord}
             </span>
-            <p className="text-xl font-semibold text-foreground">
-              {currentWord.translation}
-            </p>
+            {currentWord.translationDe ? (
+              <>
+                <p
+                  className="text-center text-lg font-semibold text-foreground"
+                  dangerouslySetInnerHTML={{ __html: currentWord.translationDe }}
+                />
+                <p className="mt-1 text-center text-xs text-muted-foreground">
+                  <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-medium">EN</span>{" "}
+                  {currentWord.translation}
+                </p>
+              </>
+            ) : (
+              <p className="text-xl font-semibold text-foreground">
+                {currentWord.translation}
+              </p>
+            )}
             <p className="mt-2 text-xs text-muted-foreground">
               Sure {currentWord.surah}, Ayah {currentWord.ayah}
             </p>

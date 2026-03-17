@@ -22,75 +22,111 @@ function getAbsoluteVerseNumber(surah: number, ayah: number): number {
   return total + ayah;
 }
 
+function getAudioUrl(verseKey: string): string {
+  const [surah, ayah] = verseKey.split(":");
+  const absNum = getAbsoluteVerseNumber(Number(surah), Number(ayah));
+  return `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${absNum}.mp3`;
+}
+
 export default function SurahClient({ verses, surahId, surahName }: SurahClientProps) {
   const { user } = useAuth();
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [playingAll, setPlayingAll] = useState(false);
-  const [currentVerseIndex, setCurrentVerseIndex] = useState(-1);
+
+  // Unified audio state: playingVerseIndex = which verse is playing (-1 = none)
+  const [playingVerseIndex, setPlayingVerseIndex] = useState(-1);
+  // continuousMode = true means auto-advance to next verse when current ends
+  const [continuousMode, setContinuousMode] = useState(false);
   const [currentAudioTime, setCurrentAudioTime] = useState(0);
 
   const surahInfo = AVAILABLE_SURAHS.find((s) => s.id === surahId);
+  const isAnythingPlaying = playingVerseIndex >= 0;
 
   const handleWordClick = useCallback(
     (word: QuranWord, verseKey: string) => {
       if (!user) return;
       const [, ayah] = verseKey.split(":");
+      const verseIndex = verses.findIndex((v) => v.verse_key === verseKey);
+      const germanTranslation = verses[verseIndex]?.translations?.[0]?.text || "";
       saveWord({
         userId: user.uid,
         arabicWord: word.text_uthmani,
         translation: word.translation?.text || "",
+        translationDe: germanTranslation,
         surah: surahId,
         ayah: parseInt(ayah, 10),
         status: "new",
         createdAt: Date.now(),
       });
     },
-    [user, surahId]
+    [user, surahId, verses]
   );
 
-  // Play all verses sequentially
+  // Stop all playback
+  const stopPlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+    }
+    setPlayingVerseIndex(-1);
+    setContinuousMode(false);
+    setCurrentAudioTime(0);
+  }, []);
+
+  // Play a single verse (no auto-advance)
+  const playVerse = useCallback((index: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    setCurrentAudioTime(0);
+    setContinuousMode(false);
+    setPlayingVerseIndex(index);
+  }, []);
+
+  // Play from a specific verse continuously (auto-advance)
+  const playFromVerse = useCallback((index: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    setCurrentAudioTime(0);
+    setContinuousMode(true);
+    setPlayingVerseIndex(index);
+  }, []);
+
+  // Play all from beginning
   const playAll = useCallback(() => {
-    if (playingAll) {
-      // Stop
-      audioRef.current?.pause();
-      setPlayingAll(false);
-      setCurrentVerseIndex(-1);
-      setCurrentAudioTime(0);
+    if (isAnythingPlaying) {
+      stopPlayback();
       return;
     }
-    setPlayingAll(true);
-    setCurrentVerseIndex(0);
-  }, [playingAll]);
+    playFromVerse(0);
+  }, [isAnythingPlaying, stopPlayback, playFromVerse]);
 
-  // Load and play audio for current verse
+  // Load and play audio when playingVerseIndex changes
   useEffect(() => {
-    if (!playingAll || currentVerseIndex < 0 || currentVerseIndex >= verses.length) {
-      if (currentVerseIndex >= verses.length) {
-        setPlayingAll(false);
-        setCurrentVerseIndex(-1);
-        setCurrentAudioTime(0);
+    if (playingVerseIndex < 0 || playingVerseIndex >= verses.length) {
+      if (playingVerseIndex >= verses.length) {
+        stopPlayback();
       }
       return;
     }
 
-    const verse = verses[currentVerseIndex];
-    const [surah, ayah] = verse.verse_key.split(":");
-    const absNum = getAbsoluteVerseNumber(Number(surah), Number(ayah));
-    const url = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${absNum}.mp3`;
-
+    const verse = verses[playingVerseIndex];
+    const url = getAudioUrl(verse.verse_key);
     const audio = audioRef.current;
     if (!audio) return;
 
     audio.src = url;
-    audio.play().catch(() => {
-      setPlayingAll(false);
-      setCurrentVerseIndex(-1);
-    });
+    audio.play().catch(() => stopPlayback());
 
     const onTimeUpdate = () => setCurrentAudioTime(audio.currentTime);
     const onEnded = () => {
       setCurrentAudioTime(0);
-      setCurrentVerseIndex((prev) => prev + 1);
+      if (continuousMode) {
+        setPlayingVerseIndex((prev) => prev + 1);
+      } else {
+        setPlayingVerseIndex(-1);
+      }
     };
 
     audio.addEventListener("timeupdate", onTimeUpdate);
@@ -104,7 +140,7 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [playingAll, currentVerseIndex, verses]);
+  }, [playingVerseIndex, verses, continuousMode, stopPlayback]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -125,7 +161,7 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
           onClick={playAll}
           className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
         >
-          {playingAll ? (
+          {isAnythingPlaying ? (
             <>
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
@@ -149,8 +185,11 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
             <Verse
               verse={verse}
               onWordClick={handleWordClick}
-              isCurrentlyPlaying={playingAll && index === currentVerseIndex}
-              globalAudioTime={playingAll && index === currentVerseIndex ? currentAudioTime : undefined}
+              isPlaying={index === playingVerseIndex}
+              audioTime={index === playingVerseIndex ? currentAudioTime : undefined}
+              onPlay={() => playVerse(index)}
+              onPlayFromHere={() => playFromVerse(index)}
+              onStop={stopPlayback}
             />
           </div>
         ))}

@@ -45,6 +45,7 @@ export interface VocabularyEntry {
   userId: string;
   arabicWord: string;
   translation: string;
+  translationDe?: string;
   surah: number;
   ayah: number;
   status: "new" | "learning" | "known";
