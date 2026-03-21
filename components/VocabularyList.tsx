@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { VocabularyEntry } from "@/types";
 import { updateWordStatus, removeWord } from "@/lib/hooks";
 import { useLanguage } from "@/lib/LanguageContext";
+import { translateToGerman } from "@/lib/wordDictionary";
 
 interface VocabularyListProps {
   words: VocabularyEntry[];
@@ -11,7 +12,7 @@ interface VocabularyListProps {
 }
 
 export default function VocabularyList({ words, loading }: VocabularyListProps) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [filter, setFilter] = useState<"all" | "new" | "learning" | "known">("all");
 
   const filtered = filter === "all" ? words : words.filter((w) => w.status === filter);
@@ -75,7 +76,9 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
                   {statusLabels[word.status]}
                 </span>
               </div>
-              <p className="mb-1 text-sm text-foreground">{word.translation}</p>
+              <p className="mb-1 text-sm text-foreground">
+                {lang === "de" ? translateToGerman(word.translation) : word.translation}
+              </p>
               <p className="mb-3 text-xs text-muted-foreground">
                 {t("vocab.surah")} {word.surah}, {t("vocab.ayah")} {word.ayah}
               </p>

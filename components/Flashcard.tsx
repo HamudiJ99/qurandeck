@@ -4,13 +4,14 @@ import { useState, useCallback } from "react";
 import type { VocabularyEntry } from "@/types";
 import { updateWordStatus } from "@/lib/hooks";
 import { useLanguage } from "@/lib/LanguageContext";
+import { translateToGerman } from "@/lib/wordDictionary";
 
 interface FlashcardProps {
   words: VocabularyEntry[];
 }
 
 export default function Flashcard({ words }: FlashcardProps) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -108,7 +109,7 @@ export default function Flashcard({ words }: FlashcardProps) {
               {currentWord.arabicWord}
             </span>
             <p className="text-xl font-semibold text-foreground">
-              {currentWord.translation}
+              {lang === "de" ? translateToGerman(currentWord.translation) : currentWord.translation}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
               {t("vocab.surah")} {currentWord.surah}, {t("vocab.ayah")} {currentWord.ayah}
