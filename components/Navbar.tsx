@@ -43,7 +43,7 @@ export default function Navbar() {
           ))}
           <button
             onClick={toggleLang}
-            className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title={t("lang.switch")}
           >
             {lang === "de" ? "DE" : "EN"}
@@ -52,17 +52,17 @@ export default function Navbar() {
         </div>
 
         {/* Mobile menu button */}
-        <div className="flex items-center gap-2 sm:hidden">
+        <div className="flex items-center gap-1 sm:hidden">
           <button
             onClick={toggleLang}
-            className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {lang === "de" ? "DE" : "EN"}
           </button>
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 text-muted-foreground"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
             aria-label="Menu"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,13 +78,13 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="border-t border-border px-4 pb-3 sm:hidden">
+        <div className="border-t border-border px-4 py-2 sm:hidden">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMobileOpen(false)}
-              className={`block py-2 text-sm font-medium ${
+              className={`block py-3 text-base font-medium ${
                 pathname?.startsWith(link.href)
                   ? "text-primary"
                   : "text-muted-foreground"

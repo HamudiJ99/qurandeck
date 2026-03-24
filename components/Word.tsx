@@ -21,7 +21,7 @@ export default function Word({ word, isHighlighted, onClick }: WordProps) {
   return (
     <span
       onClick={() => onClick(word)}
-      className={`inline-block cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-primary/10 ${
+      className={`inline-block cursor-pointer rounded px-1.5 py-1 transition-colors hover:bg-primary/10 active:bg-primary/20 ${
         isHighlighted ? "highlight" : ""
       }`}
       title={tooltipText}

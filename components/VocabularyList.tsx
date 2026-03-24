@@ -45,12 +45,12 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
   return (
     <div>
       {/* Filter tabs */}
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {(["all", "new", "learning", "known"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               filter === f
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground"
@@ -62,21 +62,23 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
       </div>
 
       {/* Star filter */}
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
         <span className="text-sm text-muted-foreground">{t("vocab.filterByStars")}:</span>
-        {(["all", 0, 1, 2, 3] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStarFilter(s)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              starFilter === s
-                ? "bg-yellow-500 text-white"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {s === "all" ? t("vocab.all") : `${"\u2605".repeat(s)}${"\u2606".repeat(3 - s)}`}
-          </button>
-        ))}
+        <div className="flex flex-wrap gap-2">
+          {(["all", 0, 1, 2, 3] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStarFilter(s)}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                starFilter === s
+                  ? "bg-yellow-500 text-white"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {s === "all" ? t("vocab.all") : `${"\u2605".repeat(s)}${"\u2606".repeat(3 - s)}`}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filtered.length === 0 ? (

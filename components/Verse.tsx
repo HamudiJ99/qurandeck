@@ -46,7 +46,7 @@ export default function Verse({ verse, onWordClick, isPlaying, audioTime, onPlay
       isPlaying ? "border-primary shadow-md" : "border-border hover:border-primary/30"
     }`}>
       {/* Verse header */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
             {verse.verse_number}
@@ -56,31 +56,31 @@ export default function Verse({ verse, onWordClick, isPlaying, audioTime, onPlay
           {isPlaying ? (
             <button
               onClick={onStop}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-2 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
               title="Stoppen"
             >
-              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
               </svg>
-              {t("verse.stop")}
+              <span className="hidden sm:inline">{t("verse.stop")}</span>
             </button>
           ) : (
             <>
               <button
                 onClick={onPlay}
-                className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
                 title="Diesen Vers abspielen"
               >
-                <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               </button>
               <button
                 onClick={onPlayFromHere}
-                className="inline-flex items-center gap-1 rounded-lg bg-primary/5 px-2.5 py-1.5 text-xs font-medium text-primary/70 transition-colors hover:bg-primary/15 hover:text-primary"
+                className="inline-flex items-center gap-1 rounded-lg bg-primary/5 px-3 py-2 text-xs font-medium text-primary/70 transition-colors hover:bg-primary/15 hover:text-primary"
                 title="Ab hier abspielen"
               >
-                <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 <svg className="h-3 w-3 -ml-1.5" fill="currentColor" viewBox="0 0 24 24">

@@ -159,22 +159,22 @@ export default function Flashcard({ words }: FlashcardProps) {
       </div>
 
       {/* Action buttons */}
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button
           onClick={handleStillLearning}
-          className="rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amber-600"
+          className="min-w-[100px] rounded-lg bg-amber-500 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-amber-600 sm:px-5 sm:py-2.5"
         >
           {t("flash.stillLearning")}
         </button>
         <button
           onClick={handleSkip}
-          className="rounded-lg bg-muted px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80"
+          className="min-w-[80px] rounded-lg bg-muted px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 sm:px-5 sm:py-2.5"
         >
           {t("flash.skip")}
         </button>
         <button
           onClick={handleKnow}
-          className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
+          className="min-w-[100px] rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:px-5 sm:py-2.5"
         >
           {t("flash.know")}
         </button>

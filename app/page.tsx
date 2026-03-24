@@ -60,7 +60,7 @@ export default function HomePage() {
       </div>
 
       {/* Features */}
-      <div className="mt-16 grid gap-6 text-left sm:grid-cols-3">
+      <div className="mt-16 grid gap-6 text-left sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="mb-2 text-2xl">📖</div>
           <h4 className="mb-1 font-semibold text-foreground">{t("home.wordByWord")}</h4>
@@ -75,7 +75,7 @@ export default function HomePage() {
             {t("home.audioPlaybackDesc")}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-5 sm:col-span-2 lg:col-span-1">
           <div className="mb-2 text-2xl">🃏</div>
           <h4 className="mb-1 font-semibold text-foreground">{t("home.flashcards")}</h4>
           <p className="text-sm text-muted-foreground">
