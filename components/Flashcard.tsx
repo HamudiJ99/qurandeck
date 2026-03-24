@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { VocabularyEntry } from "@/types";
-import { updateWordStatus } from "@/lib/hooks";
+import { updateWordStatus, updateWordStars } from "@/lib/hooks";
 import { useLanguage } from "@/lib/LanguageContext";
 import { translateToGerman } from "@/lib/wordDictionary";
 
@@ -23,15 +23,27 @@ export default function Flashcard({ words }: FlashcardProps) {
 
   const handleKnow = useCallback(() => {
     if (!currentWord?.id) return;
-    updateWordStatus(currentWord.id, "known");
-    setCompleted((prev) => new Set(prev).add(currentWord.id!));
+    // Award star (max 3)
+    const currentStars = currentWord.stars || 0;
+    const newStars = Math.min(currentStars + 1, 3) as 0 | 1 | 2 | 3;
+    updateWordStars(currentWord.id, newStars);
+    // Mark as known when reaching 3 stars
+    if (newStars === 3) {
+      updateWordStatus(currentWord.id, "known");
+      setCompleted((prev) => new Set(prev).add(currentWord.id!));
+    }
     setFlipped(false);
-    if (currentIndex >= remaining.length - 1) setCurrentIndex(0);
+    if (newStars === 3 && currentIndex >= remaining.length - 1) setCurrentIndex(0);
+    else setCurrentIndex((prev) => (prev + 1) % remaining.length);
   }, [currentWord, currentIndex, remaining.length]);
 
   const handleStillLearning = useCallback(() => {
     if (!currentWord?.id) return;
     updateWordStatus(currentWord.id, "learning");
+    // Reset stars when marking as still learning
+    if ((currentWord.stars || 0) > 0) {
+      updateWordStars(currentWord.id, 0);
+    }
     setFlipped(false);
     setCurrentIndex((prev) => (prev + 1) % remaining.length);
   }, [currentWord, remaining.length]);
@@ -97,6 +109,20 @@ export default function Flashcard({ words }: FlashcardProps) {
         <div className={`flashcard-inner relative h-64 ${flipped ? "flipped" : ""}`}>
           {/* Front - Arabic */}
           <div className="flashcard-front absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 shadow-lg">
+            <div className="absolute top-3 right-3 flex gap-0.5">
+              {[1, 2, 3].map((star) => (
+                <span
+                  key={star}
+                  className={`text-lg ${
+                    (currentWord.stars || 0) >= star
+                      ? "text-yellow-500"
+                      : "text-gray-300 dark:text-gray-600"
+                  }`}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
             <span className="arabic-text text-4xl">{currentWord.arabicWord}</span>
             <p className="mt-4 text-xs text-muted-foreground">
               {t("flash.tapToSee")}
@@ -105,6 +131,20 @@ export default function Flashcard({ words }: FlashcardProps) {
 
           {/* Back - Translation */}
           <div className="flashcard-back absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-primary bg-card p-6 shadow-lg">
+            <div className="absolute top-3 right-3 flex gap-0.5">
+              {[1, 2, 3].map((star) => (
+                <span
+                  key={star}
+                  className={`text-lg ${
+                    (currentWord.stars || 0) >= star
+                      ? "text-yellow-500"
+                      : "text-gray-300 dark:text-gray-600"
+                  }`}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
             <span className="arabic-text mb-3 text-2xl text-muted-foreground">
               {currentWord.arabicWord}
             </span>

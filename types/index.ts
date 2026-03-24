@@ -50,6 +50,7 @@ export interface VocabularyEntry {
   surah: number;
   ayah: number;
   status: "new" | "learning" | "known";
+  stars: 0 | 1 | 2 | 3;
   createdAt: number;
 }
 

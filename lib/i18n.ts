@@ -66,6 +66,7 @@ export const translations = {
   "vocab.surah": { de: "Sure", en: "Surah" },
   "vocab.ayah": { de: "Ayah", en: "Ayah" },
   "vocab.remove": { de: "Entfernen", en: "Remove" },
+  "vocab.filterByStars": { de: "Nach Sternen filtern", en: "Filter by stars" },
 
   // Practice / Flashcard page
   "practice.title": { de: "Karteikarten-Übung", en: "Flashcard Practice" },
@@ -73,6 +74,8 @@ export const translations = {
     de: "Wiederhole deine gespeicherten Vokabeln mit Karteikarten.",
     en: "Review your saved vocabulary with flashcards.",
   },
+  "practice.resetKnown": { de: "Alle gelernten zurücksetzen", en: "Reset all known" },
+  "practice.resetting": { de: "Wird zurückgesetzt...", en: "Resetting..." },
   "flash.card": { de: "Karte", en: "Card" },
   "flash.of": { de: "von", en: "of" },
   "flash.learned": { de: "gelernt", en: "learned" },

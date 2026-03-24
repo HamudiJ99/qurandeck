@@ -14,8 +14,12 @@ interface VocabularyListProps {
 export default function VocabularyList({ words, loading }: VocabularyListProps) {
   const { t, lang } = useLanguage();
   const [filter, setFilter] = useState<"all" | "new" | "learning" | "known">("all");
+  const [starFilter, setStarFilter] = useState<0 | 1 | 2 | 3 | "all">("all");
 
-  const filtered = filter === "all" ? words : words.filter((w) => w.status === filter);
+  const filteredByStatus = filter === "all" ? words : words.filter((w) => w.status === filter);
+  const filtered = starFilter === "all" 
+    ? filteredByStatus 
+    : filteredByStatus.filter((w) => (w.stars || 0) === starFilter);
 
   const statusColors: Record<string, string> = {
     new: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -41,7 +45,7 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
   return (
     <div>
       {/* Filter tabs */}
-      <div className="mb-6 flex gap-2">
+      <div className="mb-4 flex gap-2">
         {(["all", "new", "learning", "known"] as const).map((f) => (
           <button
             key={f}
@@ -53,6 +57,24 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
             }`}
           >
             {statusLabels[f]} {f === "all" ? `(${words.length})` : `(${words.filter((w) => w.status === f).length})`}
+          </button>
+        ))}
+      </div>
+
+      {/* Star filter */}
+      <div className="mb-6 flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">{t("vocab.filterByStars")}:</span>
+        {(["all", 0, 1, 2, 3] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setStarFilter(s)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              starFilter === s
+                ? "bg-yellow-500 text-white"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {s === "all" ? t("vocab.all") : `${"\u2605".repeat(s)}${"\u2606".repeat(3 - s)}`}
           </button>
         ))}
       </div>
@@ -71,7 +93,23 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
               className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
             >
               <div className="mb-2 flex items-start justify-between">
-                <span className="arabic-text text-2xl">{word.arabicWord}</span>
+                <div className="flex flex-col">
+                  <span className="arabic-text text-2xl">{word.arabicWord}</span>
+                  <div className="flex gap-0.5 mt-1">
+                    {[1, 2, 3].map((star) => (
+                      <span
+                        key={star}
+                        className={`text-sm ${
+                          (word.stars || 0) >= star
+                            ? "text-yellow-500"
+                            : "text-gray-300 dark:text-gray-600"
+                        }`}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[word.status]}`}>
                   {statusLabels[word.status]}
                 </span>

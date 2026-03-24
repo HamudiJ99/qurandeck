@@ -63,7 +63,7 @@ export function useVocabulary(userId: string | undefined) {
   return { words, loading };
 }
 
-export async function saveWord(entry: Omit<VocabularyEntry, "id">) {
+export async function saveWord(entry: Omit<VocabularyEntry, "id" | "stars">) {
   const db = getFirebaseDb();
   // Check if word already exists for this user
   const q = query(
@@ -78,6 +78,7 @@ export async function saveWord(entry: Omit<VocabularyEntry, "id">) {
 
   await addDoc(collection(db, "vocabulary"), {
     ...entry,
+    stars: 0,
     createdAt: Date.now(),
   });
 }
@@ -88,6 +89,28 @@ export async function updateWordStatus(
 ) {
   const db = getFirebaseDb();
   await updateDoc(doc(db, "vocabulary", docId), { status });
+}
+
+export async function updateWordStars(
+  docId: string,
+  stars: VocabularyEntry["stars"]
+) {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, "vocabulary", docId), { stars });
+}
+
+export async function resetAllKnownWords(userId: string) {
+  const db = getFirebaseDb();
+  const q = query(
+    collection(db, "vocabulary"),
+    where("userId", "==", userId),
+    where("status", "==", "known")
+  );
+  const snapshot = await getDocs(q);
+  const updates = snapshot.docs.map((d) =>
+    updateDoc(doc(db, "vocabulary", d.id), { status: "learning", stars: 0 })
+  );
+  await Promise.all(updates);
 }
 
 export async function removeWord(docId: string) {
