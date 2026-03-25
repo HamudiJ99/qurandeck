@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { VocabularyEntry } from "@/types";
 import { updateWordStatus, removeWord } from "@/lib/hooks";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -15,6 +15,22 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
   const { t, lang } = useLanguage();
   const [filter, setFilter] = useState<"all" | "new" | "learning" | "known">("all");
   const [starFilter, setStarFilter] = useState<0 | 1 | 2 | 3 | "all">("all");
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setShowFilterMenu(false);
+      }
+    };
+
+    if (showFilterMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showFilterMenu]);
 
   const filteredByStatus = filter === "all" ? words : words.filter((w) => w.status === filter);
   const filtered = starFilter === "all" 
@@ -34,6 +50,11 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
     known: t("vocab.known"),
   };
 
+  const getFilterLabel = () => {
+    if (starFilter === "all") return t("vocab.all");
+    return `${starFilter}★`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -44,8 +65,9 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
 
   return (
     <div>
-      {/* Filter tabs */}
-      <div className="mb-4 flex flex-wrap gap-2">
+      {/* Filter tabs and star filter */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* Status filter buttons */}
         {(["all", "new", "learning", "known"] as const).map((f) => (
           <button
             key={f}
@@ -59,25 +81,51 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
             {statusLabels[f]} {f === "all" ? `(${words.length})` : `(${words.filter((w) => w.status === f).length})`}
           </button>
         ))}
-      </div>
 
-      {/* Star filter */}
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <span className="text-sm text-muted-foreground">{t("vocab.filterByStars")}:</span>
-        <div className="flex flex-wrap gap-2">
-          {(["all", 0, 1, 2, 3] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStarFilter(s)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                starFilter === s
-                  ? "bg-yellow-500 text-white"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {s === "all" ? t("vocab.all") : `${"\u2605".repeat(s)}${"\u2606".repeat(3 - s)}`}
-            </button>
-          ))}
+        {/* Star filter dropdown */}
+        <div ref={filterRef} className="relative ml-auto">
+          <button
+            onClick={() => setShowFilterMenu(!showFilterMenu)}
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:bg-muted"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span>{getFilterLabel()}</span>
+            {starFilter !== "all" && (
+              <span className="flex h-2 w-2 rounded-full bg-primary"></span>
+            )}
+          </button>
+
+          {/* Filter dropdown menu */}
+          {showFilterMenu && (
+            <div className="absolute right-0 top-12 z-10 w-40 rounded-lg border border-border bg-card shadow-lg">
+              <div className="p-2">
+                {[
+                  { value: "all", label: t("vocab.all") },
+                  { value: 0, label: "0★" },
+                  { value: 1, label: "1★" },
+                  { value: 2, label: "2★" },
+                  { value: 3, label: "3★" },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setStarFilter(option.value as typeof starFilter);
+                      setShowFilterMenu(false);
+                    }}
+                    className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                      starFilter === option.value
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

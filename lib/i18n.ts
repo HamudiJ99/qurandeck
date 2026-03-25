@@ -67,6 +67,10 @@ export const translations = {
   "vocab.ayah": { de: "Ayah", en: "Ayah" },
   "vocab.remove": { de: "Entfernen", en: "Remove" },
   "vocab.filterByStars": { de: "Nach Sternen filtern", en: "Filter by stars" },
+  "vocab.stars0": { de: "0★ (Keine Sterne)", en: "0★ (No Stars)" },
+  "vocab.stars1": { de: "1★", en: "1★" },
+  "vocab.stars2": { de: "2★", en: "2★" },
+  "vocab.stars3": { de: "3★ (Gelernt)", en: "3★ (Learned)" },
 
   // Practice / Flashcard page
   "practice.title": { de: "Karteikarten-Übung", en: "Flashcard Practice" },
@@ -74,8 +78,15 @@ export const translations = {
     de: "Wiederhole deine gespeicherten Vokabeln mit Karteikarten.",
     en: "Review your saved vocabulary with flashcards.",
   },
-  "practice.resetKnown": { de: "Alle gelernten zurücksetzen", en: "Reset all known" },
+  "practice.resetKnown": { de: "Alle gelernten zurücksetzen", en: "Reset all learned" },
   "practice.resetting": { de: "Wird zurückgesetzt...", en: "Resetting..." },
+  "practice.confirmReset": { de: "Zurücksetzen bestätigen", en: "Confirm Reset" },
+  "practice.resetWarning": {
+    de: "Alle Karten mit 3 Sternen werden zurückgesetzt. Sie erscheinen wieder zum Üben.",
+    en: "All cards with 3 stars will be reset. They will appear again for practice.",
+  },
+  "practice.cancel": { de: "Abbrechen", en: "Cancel" },
+  "practice.confirm": { de: "Bestätigen", en: "Confirm" },
   "flash.card": { de: "Karte", en: "Card" },
   "flash.of": { de: "von", en: "of" },
   "flash.learned": { de: "gelernt", en: "learned" },
