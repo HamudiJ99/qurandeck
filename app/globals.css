@@ -49,11 +49,7 @@ body {
 }
 
 .highlight {
-  color: #e53e3e;
-  font-weight: bold;
-  background-color: rgba(229, 62, 62, 0.1);
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  color: #e53e3e !important;
 }
 
 .arabic-text {

@@ -5,7 +5,7 @@ import type { QuranWord, QuranVerse } from "@/types";
 import { useAuth } from "@/lib/hooks";
 import { saveWord } from "@/lib/hooks";
 import Verse from "@/components/Verse";
-import { AVAILABLE_SURAHS } from "@/lib/quranApi";
+import { AVAILABLE_SURAHS, fetchChapterAudioData, fetchVerseAudioWithTimings, type WordTiming, type VerseAudioInfo } from "@/lib/quranApi";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface SurahClientProps {
@@ -14,31 +14,17 @@ interface SurahClientProps {
   surahName: string;
 }
 
-function getAbsoluteVerseNumber(surah: number, ayah: number): number {
-  const verseCounts: Record<number, number> = { 1: 7, 2: 286 };
-  let total = 0;
-  for (let i = 1; i < surah; i++) {
-    total += verseCounts[i] || 0;
-  }
-  return total + ayah;
-}
-
-function getAudioUrl(verseKey: string): string {
-  const [surah, ayah] = verseKey.split(":");
-  const absNum = getAbsoluteVerseNumber(Number(surah), Number(ayah));
-  return `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${absNum}.mp3`;
-}
-
 export default function SurahClient({ verses, surahId, surahName }: SurahClientProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const verseInfoRef = useRef<VerseAudioInfo | null>(null);
 
-  // Unified audio state: playingVerseIndex = which verse is playing (-1 = none)
+  // Audio state
   const [playingVerseIndex, setPlayingVerseIndex] = useState(-1);
-  // continuousMode = true means auto-advance to next verse when current ends
   const [continuousMode, setContinuousMode] = useState(false);
-  const [currentAudioTime, setCurrentAudioTime] = useState(0);
+  const [currentAudioTime, setCurrentAudioTime] = useState(0); // Time relative to verse start
+  const [wordTimings, setWordTimings] = useState<WordTiming[]>([]);
 
   const surahInfo = AVAILABLE_SURAHS.find((s) => s.id === surahId);
   const isAnythingPlaying = playingVerseIndex >= 0;
@@ -65,11 +51,12 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     const audio = audioRef.current;
     if (audio) {
       audio.pause();
-      audio.removeAttribute("src");
     }
     setPlayingVerseIndex(-1);
     setContinuousMode(false);
     setCurrentAudioTime(0);
+    setWordTimings([]);
+    verseInfoRef.current = null;
   }, []);
 
   // Play a single verse (no auto-advance)
@@ -78,6 +65,8 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     if (!audio) return;
     audio.pause();
     setCurrentAudioTime(0);
+    setWordTimings([]);
+    verseInfoRef.current = null;
     setContinuousMode(false);
     setPlayingVerseIndex(index);
   }, []);
@@ -88,6 +77,8 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     if (!audio) return;
     audio.pause();
     setCurrentAudioTime(0);
+    setWordTimings([]);
+    verseInfoRef.current = null;
     setContinuousMode(true);
     setPlayingVerseIndex(index);
   }, []);
@@ -101,6 +92,11 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     playFromVerse(0);
   }, [isAnythingPlaying, stopPlayback, playFromVerse]);
 
+  // Preload chapter audio data on mount
+  useEffect(() => {
+    fetchChapterAudioData(surahId);
+  }, [surahId]);
+
   // Load and play audio when playingVerseIndex changes
   useEffect(() => {
     if (playingVerseIndex < 0 || playingVerseIndex >= verses.length) {
@@ -111,24 +107,114 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     }
 
     const verse = verses[playingVerseIndex];
-    const url = getAudioUrl(verse.verse_key);
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.src = url;
-    audio.play().catch(() => stopPlayback());
+    // IMMEDIATELY pause audio to prevent hearing the next verse before seek
+    audio.pause();
 
-    const onTimeUpdate = () => setCurrentAudioTime(audio.currentTime);
-    const onEnded = () => {
-      setCurrentAudioTime(0);
-      if (continuousMode) {
-        setPlayingVerseIndex((prev) => prev + 1);
-      } else {
-        setPlayingVerseIndex(-1);
+    let cancelled = false;
+
+    // Fetch verse audio info with word timings
+    fetchVerseAudioWithTimings(surahId, verse.verse_key)
+      .then((info) => {
+        if (cancelled || !info) return;
+        
+        verseInfoRef.current = info;
+        setWordTimings(info.wordTimings);
+
+        // Load chapter audio if not already loaded, then seek to verse start
+        const currentSrc = audio.src;
+        const targetSrc = info.audioUrl;
+        
+        const startPlayback = () => {
+          if (cancelled || !verseInfoRef.current) return;
+          // First seek, then wait for seeked event before playing
+          audio.currentTime = verseInfoRef.current.verseStartTime;
+          audio.addEventListener("seeked", function onSeeked() {
+            audio.removeEventListener("seeked", onSeeked);
+            if (!cancelled) {
+              audio.play().catch(() => !cancelled && stopPlayback());
+            }
+          }, { once: true });
+        };
+
+        if (!currentSrc.includes(targetSrc.split('/').pop() || '')) {
+          audio.src = targetSrc;
+          audio.addEventListener("canplay", function onCanPlay() {
+            audio.removeEventListener("canplay", onCanPlay);
+            startPlayback();
+          }, { once: true });
+          audio.load();
+        } else {
+          // Audio already loaded, just seek
+          startPlayback();
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setWordTimings([]);
+        verseInfoRef.current = null;
+      });
+
+    // Use requestAnimationFrame for precise timing
+    let rafId: number;
+    let stoppingAudio = false;
+    
+    const checkAudioTime = () => {
+      if (cancelled || !audio || audio.paused || stoppingAudio) return;
+      
+      const info = verseInfoRef.current;
+      if (!info) return;
+      
+      const absoluteTime = audio.currentTime;
+      const relativeTime = absoluteTime - info.verseStartTime;
+      setCurrentAudioTime(Math.max(0, relativeTime));
+
+      // Stop 100ms before verse end to ensure clean cut
+      if (absoluteTime >= info.verseEndTime - 0.1) {
+        stoppingAudio = true;
+        audio.pause();
+        
+        // Small delay to ensure audio is fully stopped before state change
+        setTimeout(() => {
+          if (cancelled) return;
+          
+          if (continuousMode && playingVerseIndex < verses.length - 1) {
+            // Move to next verse
+            setPlayingVerseIndex((prev) => prev + 1);
+          } else {
+            // Stop or end of surah
+            setCurrentAudioTime(0);
+            setWordTimings([]);
+            verseInfoRef.current = null;
+            setPlayingVerseIndex(-1);
+          }
+        }, 50);
+        return;
       }
+      
+      rafId = requestAnimationFrame(checkAudioTime);
     };
 
-    audio.addEventListener("timeupdate", onTimeUpdate);
+    const onPlay = () => {
+      rafId = requestAnimationFrame(checkAudioTime);
+    };
+
+    const onPause = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+
+    const onEnded = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      setCurrentAudioTime(0);
+      setWordTimings([]);
+      verseInfoRef.current = null;
+      setPlayingVerseIndex(-1);
+    };
+
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnded);
 
     // Scroll the verse into view
@@ -136,10 +222,13 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
 
     return () => {
-      audio.removeEventListener("timeupdate", onTimeUpdate);
+      cancelled = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [playingVerseIndex, verses, continuousMode, stopPlayback]);
+  }, [playingVerseIndex, verses, continuousMode, stopPlayback, surahId]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -186,6 +275,7 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
               onWordClick={handleWordClick}
               isPlaying={index === playingVerseIndex}
               audioTime={index === playingVerseIndex ? currentAudioTime : undefined}
+              wordTimings={index === playingVerseIndex ? wordTimings : undefined}
               onPlay={() => playVerse(index)}
               onPlayFromHere={() => playFromVerse(index)}
               onStop={stopPlayback}

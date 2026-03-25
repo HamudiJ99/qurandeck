@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import type { QuranVerse, QuranWord } from "@/types";
+import type { WordTiming } from "@/lib/quranApi";
 import Word from "./Word";
 import { useLanguage } from "@/lib/LanguageContext";
 
@@ -10,27 +11,53 @@ interface VerseProps {
   onWordClick: (word: QuranWord, verseKey: string) => void;
   isPlaying?: boolean;
   audioTime?: number;
+  wordTimings?: WordTiming[];
   onPlay: () => void;
   onPlayFromHere: () => void;
   onStop: () => void;
 }
 
-export default function Verse({ verse, onWordClick, isPlaying, audioTime, onPlay, onPlayFromHere, onStop }: VerseProps) {
+export default function Verse({ verse, onWordClick, isPlaying, audioTime, wordTimings, onPlay, onPlayFromHere, onStop }: VerseProps) {
   const { t } = useLanguage();
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
 
   const germanTranslation = verse.translations?.[0]?.text || "";
   const words = useMemo(() => verse.words?.filter((w) => w.text_uthmani && w.char_type_name !== "end") || [], [verse.words]);
 
-  // Calculate highlighted word index based on audio time (works for all playback modes)
+  // Calculate highlighted word index based on audio time and real timing data
   const highlightedWordIndex = useMemo(() => {
-    if (isPlaying && audioTime !== undefined && words.length > 0) {
-      const estimatedWordDuration = 0.5;
-      const idx = Math.floor(audioTime / estimatedWordDuration);
-      return Math.min(idx, words.length - 1);
+    if (!isPlaying || audioTime === undefined || words.length === 0) {
+      return -1;
     }
-    return -1;
-  }, [isPlaying, audioTime, words.length]);
+
+    // Use real timing data if available
+    if (wordTimings && wordTimings.length > 0) {
+      for (let i = 0; i < wordTimings.length; i++) {
+        const timing = wordTimings[i];
+        if (audioTime >= timing.startTime && audioTime < timing.endTime) {
+          // position is 1-indexed in API, convert to 0-indexed
+          // Also filter out "end" markers which have higher positions
+          const wordIndex = timing.position - 1;
+          if (wordIndex >= 0 && wordIndex < words.length) {
+            return wordIndex;
+          }
+        }
+      }
+      // If we're past all timings, highlight the last word
+      const lastTiming = wordTimings[wordTimings.length - 1];
+      if (audioTime >= lastTiming.endTime) {
+        return Math.min(lastTiming.position - 1, words.length - 1);
+      }
+      return -1;
+    }
+
+    // Fallback: estimate based on total audio duration and word count
+    // This is less accurate but better than fixed 0.5s per word
+    const estimatedTotalDuration = words.length * 0.6; // Average ~0.6s per word
+    const progress = audioTime / estimatedTotalDuration;
+    const idx = Math.floor(progress * words.length);
+    return Math.min(Math.max(idx, 0), words.length - 1);
+  }, [isPlaying, audioTime, words.length, wordTimings]);
 
   const handleWordClick = useCallback(
     (word: QuranWord) => {
