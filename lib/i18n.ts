@@ -113,6 +113,24 @@ export const translations = {
 
   // Language toggle
   "lang.switch": { de: "English", en: "Deutsch" },
+
+  // Range Audio Player
+  "range.title": { de: "Abschnitt abspielen", en: "Play Section" },
+  "range.from": { de: "Von Vers", en: "From Verse" },
+  "range.to": { de: "Bis Vers", en: "To Verse" },
+  "range.sectionRepeat": { de: "Abschnitt wiederholen", en: "Repeat Section" },
+  "range.verseRepeat": { de: "Vers wiederholen", en: "Repeat Verse" },
+  "range.times": { de: "mal", en: "times" },
+  "range.play": { de: "Abspielen", en: "Play" },
+  "range.pause": { de: "Pause", en: "Pause" },
+  "range.resume": { de: "Fortsetzen", en: "Resume" },
+  "range.paused": { de: "Pausiert", en: "Paused" },
+  "range.stop": { de: "Stoppen", en: "Stop" },
+  "range.close": { de: "Schließen", en: "Close" },
+  "range.currentVerse": { de: "Aktueller Vers", en: "Current Verse" },
+  "range.sectionLoop": { de: "Durchlauf", en: "Loop" },
+  "range.verseLoop": { de: "Wiederholung", en: "Repeat" },
+  "range.loading": { de: "Laden...", en: "Loading..." },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

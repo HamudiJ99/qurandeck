@@ -5,6 +5,7 @@ import type { QuranWord, QuranVerse } from "@/types";
 import { useAuth } from "@/lib/hooks";
 import { saveWord } from "@/lib/hooks";
 import Verse from "@/components/Verse";
+import RangeAudioPlayer from "@/components/RangeAudioPlayer";
 import { AVAILABLE_SURAHS, fetchChapterAudioData, fetchVerseAudioWithTimings, type WordTiming, type VerseAudioInfo } from "@/lib/quranApi";
 import { useLanguage } from "@/lib/LanguageContext";
 
@@ -25,9 +26,23 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
   const [continuousMode, setContinuousMode] = useState(false);
   const [currentAudioTime, setCurrentAudioTime] = useState(0); // Time relative to verse start
   const [wordTimings, setWordTimings] = useState<WordTiming[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // Range Audio Player state
+  const [showRangePlayer, setShowRangePlayer] = useState(false);
+  const [rangePlayingVerse, setRangePlayingVerse] = useState<number | null>(null);
+  const [rangeAudioTime, setRangeAudioTime] = useState(0);
+  const [rangeWordTimings, setRangeWordTimings] = useState<WordTiming[]>([]);
 
   const surahInfo = AVAILABLE_SURAHS.find((s) => s.id === surahId);
   const isAnythingPlaying = playingVerseIndex >= 0;
+
+  // Handle range player state changes
+  const handleRangePlayingChange = useCallback((verseNumber: number | null, audioTime: number, timings: WordTiming[]) => {
+    setRangePlayingVerse(verseNumber);
+    setRangeAudioTime(audioTime);
+    setRangeWordTimings(timings);
+  }, []);
 
   const handleWordClick = useCallback(
     (word: QuranWord, verseKey: string) => {
@@ -56,8 +71,27 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     setContinuousMode(false);
     setCurrentAudioTime(0);
     setWordTimings([]);
+    setIsPaused(false);
     verseInfoRef.current = null;
   }, []);
+
+  // Pause playback
+  const pausePlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && !audio.paused) {
+      audio.pause();
+      setIsPaused(true);
+    }
+  }, []);
+
+  // Resume playback
+  const resumePlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && isPaused) {
+      audio.play().catch(() => {});
+      setIsPaused(false);
+    }
+  }, [isPaused]);
 
   // Play a single verse (no auto-advance)
   const playVerse = useCallback((index: number) => {
@@ -66,6 +100,7 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     audio.pause();
     setCurrentAudioTime(0);
     setWordTimings([]);
+    setIsPaused(false);
     verseInfoRef.current = null;
     setContinuousMode(false);
     setPlayingVerseIndex(index);
@@ -78,6 +113,7 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     audio.pause();
     setCurrentAudioTime(0);
     setWordTimings([]);
+    setIsPaused(false);
     verseInfoRef.current = null;
     setContinuousMode(true);
     setPlayingVerseIndex(index);
@@ -231,7 +267,7 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
   }, [playingVerseIndex, verses, continuousMode, stopPlayback, surahId]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className={`mx-auto max-w-3xl px-4 py-8 ${rangePlayingVerse !== null ? 'pb-24 sm:pb-8' : ''}`}>
       <audio ref={audioRef} preload="none" />
 
       {/* Surah header with German + Arabic */}
@@ -244,45 +280,107 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
           {verses.length} {t("surah.verses")}
         </p>
 
-        {/* Play all / Stop button */}
-        <button
-          onClick={playAll}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-        >
+        {/* Play all / Pause / Stop buttons */}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {isAnythingPlaying ? (
             <>
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-              </svg>
-              {t("surah.stop")}
+              {/* Pause/Resume Button */}
+              {isPaused ? (
+                <button
+                  onClick={resumePlayback}
+                  className="inline-flex items-center justify-center rounded-xl bg-primary p-3 text-primary-foreground transition-colors hover:bg-primary/80"
+                  aria-label="Fortsetzen"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  onClick={pausePlayback}
+                  className="inline-flex items-center justify-center rounded-xl bg-primary p-3 text-primary-foreground transition-colors hover:bg-primary/80"
+                  aria-label="Pause"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                  </svg>
+                </button>
+              )}
+              
+              {/* Stop Button */}
+              <button
+                onClick={stopPlayback}
+                className="inline-flex items-center justify-center rounded-xl bg-red-500 p-3 text-white transition-colors hover:bg-red-600"
+                aria-label="Stoppen"
+              >
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 6h12v12H6z" />
+                </svg>
+              </button>
             </>
           ) : (
-            <>
+            <button
+              onClick={playAll}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+            >
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
               {t("surah.playAll")}
-            </>
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       <div className="space-y-4">
-        {verses.map((verse, index) => (
-          <div key={verse.verse_key || verse.id} id={`verse-${verse.verse_key}`}>
-            <Verse
-              verse={verse}
-              onWordClick={handleWordClick}
-              isPlaying={index === playingVerseIndex}
-              audioTime={index === playingVerseIndex ? currentAudioTime : undefined}
-              wordTimings={index === playingVerseIndex ? wordTimings : undefined}
-              onPlay={() => playVerse(index)}
-              onPlayFromHere={() => playFromVerse(index)}
-              onStop={stopPlayback}
-            />
-          </div>
-        ))}
+        {verses.map((verse, index) => {
+          const verseNumber = verse.verse_number;
+          const isPlayingNormal = index === playingVerseIndex;
+          const isPlayingRange = rangePlayingVerse === verseNumber;
+          const isPlaying = isPlayingNormal || isPlayingRange;
+          
+          return (
+            <div key={verse.verse_key || verse.id} id={`verse-${verse.verse_key}`}>
+              <Verse
+                verse={verse}
+                onWordClick={handleWordClick}
+                isPlaying={isPlaying}
+                isPaused={isPlayingNormal ? isPaused : false}
+                audioTime={isPlayingNormal ? currentAudioTime : isPlayingRange ? rangeAudioTime : undefined}
+                wordTimings={isPlayingNormal ? wordTimings : isPlayingRange ? rangeWordTimings : undefined}
+                onPlay={() => playVerse(index)}
+                onPlayFromHere={() => playFromVerse(index)}
+                onStop={stopPlayback}
+                onPause={pausePlayback}
+                onResume={resumePlayback}
+              />
+            </div>
+          );
+        })}
       </div>
+
+      {/* Floating Range Audio Player Button - hidden when mini player is shown */}
+      {!showRangePlayer && rangePlayingVerse === null && (
+        <button
+          onClick={() => setShowRangePlayer(true)}
+          className="fixed bottom-6 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:bg-primary/90 active:scale-95 sm:right-6 sm:h-14 sm:w-14"
+          title={t("range.title")}
+        >
+          <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+          </svg>
+        </button>
+      )}
+
+      {/* Range Audio Player Modal */}
+      <RangeAudioPlayer
+        surahId={surahId}
+        totalVerses={verses.length}
+        isOpen={showRangePlayer}
+        onClose={() => setShowRangePlayer(false)}
+        onOpen={() => setShowRangePlayer(true)}
+        onPlayingChange={handleRangePlayingChange}
+      />
     </div>
   );
 }

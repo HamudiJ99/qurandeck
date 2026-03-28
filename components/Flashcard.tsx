@@ -15,6 +15,12 @@ export default function Flashcard({ words }: FlashcardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
+  
+  // Swipe states
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
 
   const remaining = words.filter((w) => !completed.has(w.id || ""));
   const currentWord = remaining[currentIndex % remaining.length];
@@ -52,6 +58,55 @@ export default function Flashcard({ words }: FlashcardProps) {
     setFlipped(false);
     setCurrentIndex((prev) => (prev + 1) % remaining.length);
   }, [remaining.length]);
+
+  // Touch handlers for swipe
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsSwiping(true);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const currentTouch = e.targetTouches[0].clientX;
+    const diff = currentTouch - touchStart;
+    
+    // Prevent page scroll when swiping horizontally
+    if (Math.abs(diff) > 10) {
+      e.preventDefault();
+    }
+    
+    setTouchEnd(currentTouch);
+    setSwipeOffset(diff);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setIsSwiping(false);
+      setSwipeOffset(0);
+      return;
+    }
+
+    const distance = touchEnd - touchStart;
+    const isLeftSwipe = distance < -minSwipeDistance;
+    const isRightSwipe = distance > minSwipeDistance;
+
+    if (isLeftSwipe) {
+      // Left swipe = Still Learning (falsch)
+      handleStillLearning();
+    } else if (isRightSwipe) {
+      // Right swipe = Know (richtig)
+      handleKnow();
+    }
+
+    // Reset
+    setTouchStart(null);
+    setTouchEnd(null);
+    setSwipeOffset(0);
+    setIsSwiping(false);
+  };
 
   if (words.length === 0) {
     return (
@@ -103,9 +158,35 @@ export default function Flashcard({ words }: FlashcardProps) {
 
       {/* Flashcard */}
       <div
-        className="flashcard w-full max-w-md cursor-pointer"
-        onClick={handleFlip}
+        className="flashcard w-full max-w-md cursor-pointer relative"
+        onClick={!isSwiping ? handleFlip : undefined}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${swipeOffset}px) rotate(${swipeOffset * 0.05}deg)`,
+          transition: isSwiping ? 'none' : 'transform 0.3s ease-out',
+          touchAction: 'pan-y', // Allow vertical scrolling, prevent horizontal
+        }}
       >
+        {/* Swipe indicators */}
+        {isSwiping && Math.abs(swipeOffset) > 20 && (
+          <>
+            <div
+              className="absolute -left-16 top-1/2 -translate-y-1/2 text-4xl transition-opacity z-10"
+              style={{ opacity: swipeOffset < -20 ? Math.min(Math.abs(swipeOffset) / 100, 1) : 0 }}
+            >
+              ❌
+            </div>
+            <div
+              className="absolute -right-16 top-1/2 -translate-y-1/2 text-4xl transition-opacity z-10"
+              style={{ opacity: swipeOffset > 20 ? Math.min(swipeOffset / 100, 1) : 0 }}
+            >
+              ✅
+            </div>
+          </>
+        )}
+        
         <div className={`flashcard-inner relative h-64 ${flipped ? "flipped" : ""}`}>
           {/* Front - Arabic */}
           <div className="flashcard-front absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 shadow-lg">
@@ -178,6 +259,11 @@ export default function Flashcard({ words }: FlashcardProps) {
         >
           {t("flash.know")}
         </button>
+      </div>
+
+      {/* Swipe hint for mobile */}
+      <div className="mt-4 text-center text-xs text-muted-foreground sm:hidden">
+        ← {t("flash.stillLearning")} | {t("flash.know")} →
       </div>
     </div>
   );

@@ -10,14 +10,17 @@ interface VerseProps {
   verse: QuranVerse;
   onWordClick: (word: QuranWord, verseKey: string) => void;
   isPlaying?: boolean;
+  isPaused?: boolean;
   audioTime?: number;
   wordTimings?: WordTiming[];
   onPlay: () => void;
   onPlayFromHere: () => void;
   onStop: () => void;
+  onPause?: () => void;
+  onResume?: () => void;
 }
 
-export default function Verse({ verse, onWordClick, isPlaying, audioTime, wordTimings, onPlay, onPlayFromHere, onStop }: VerseProps) {
+export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTime, wordTimings, onPlay, onPlayFromHere, onStop, onPause, onResume }: VerseProps) {
   const { t } = useLanguage();
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
 
@@ -79,18 +82,43 @@ export default function Verse({ verse, onWordClick, isPlaying, audioTime, wordTi
             {verse.verse_number}
           </span>
 
-          {/* Play single verse */}
+          {/* Play controls */}
           {isPlaying ? (
-            <button
-              onClick={onStop}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-2 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
-              title="Stoppen"
-            >
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-              </svg>
-              <span className="hidden sm:inline">{t("verse.stop")}</span>
-            </button>
+            <>
+              {/* Pause/Resume Button */}
+              {isPaused ? (
+                <button
+                  onClick={onResume}
+                  className="inline-flex items-center justify-center rounded-lg bg-primary p-2 text-primary-foreground transition-colors hover:bg-primary/80"
+                  title="Fortsetzen"
+                >
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  onClick={onPause}
+                  className="inline-flex items-center justify-center rounded-lg bg-primary p-2 text-primary-foreground transition-colors hover:bg-primary/80"
+                  title="Pause"
+                >
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                  </svg>
+                </button>
+              )}
+              
+              {/* Stop Button */}
+              <button
+                onClick={onStop}
+                className="inline-flex items-center justify-center rounded-lg bg-red-100 p-2 text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+                title="Stoppen"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 6h12v12H6z" />
+                </svg>
+              </button>
+            </>
           ) : (
             <>
               <button
