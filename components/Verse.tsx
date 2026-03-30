@@ -24,7 +24,12 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
   const { t } = useLanguage();
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
 
-  const germanTranslation = verse.translations?.[0]?.text || "";
+  // Remove footnote numbers (superscript tags) from translation
+  const rawTranslation = verse.translations?.[0]?.text || "";
+  const translation = useMemo(() => {
+    return rawTranslation.replace(/<sup[^>]*>.*?<\/sup>/gi, '').trim();
+  }, [rawTranslation]);
+  
   const words = useMemo(() => verse.words?.filter((w) => w.text_uthmani && w.char_type_name !== "end") || [], [verse.words]);
 
   // Calculate highlighted word index based on audio time and real timing data
@@ -164,11 +169,11 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
         ))}
       </div>
 
-      {/* German translation */}
-      {germanTranslation && (
+      {/* Translation */}
+      {translation && (
         <p
           className="border-t border-border pt-3 text-sm leading-relaxed text-muted-foreground"
-          dangerouslySetInnerHTML={{ __html: germanTranslation }}
+          dangerouslySetInnerHTML={{ __html: translation }}
         />
       )}
     </div>

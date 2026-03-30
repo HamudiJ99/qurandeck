@@ -2,14 +2,22 @@ import type { QuranVerse, SurahInfo } from "@/types";
 
 const BASE_URL = "https://api.quran.com/api/v4";
 
+// Translation IDs for different languages
+const TRANSLATION_IDS: Record<string, string> = {
+  de: "27",  // German: Frank Bubenheim & Nadeem
+  en: "20",  // English: Sahih International
+};
+
 export async function fetchVersesByChapter(
   surah: number,
-  page: number = 1
+  page: number = 1,
+  language: string = "de"
 ): Promise<{ verses: QuranVerse[]; pagination: { total_pages: number; current_page: number } }> {
+  const translationId = TRANSLATION_IDS[language] || TRANSLATION_IDS.de;
   const params = new URLSearchParams({
-    language: "de",
+    language: language,
     words: "true",
-    translations: "27", // German translation: Frank Bubenheim & Nadeem
+    translations: translationId,
     word_fields: "text_uthmani,translation",
     translation_fields: "text",
     fields: "text_uthmani",
@@ -25,13 +33,13 @@ export async function fetchVersesByChapter(
   return res.json();
 }
 
-export async function fetchAllVersesByChapter(surah: number): Promise<QuranVerse[]> {
+export async function fetchAllVersesByChapter(surah: number, language: string = "de"): Promise<QuranVerse[]> {
   const allVerses: QuranVerse[] = [];
   let page = 1;
   let totalPages = 1;
 
   while (page <= totalPages) {
-    const data = await fetchVersesByChapter(surah, page);
+    const data = await fetchVersesByChapter(surah, page, language);
     allVerses.push(...data.verses);
     totalPages = data.pagination.total_pages;
     page++;
@@ -40,8 +48,8 @@ export async function fetchAllVersesByChapter(surah: number): Promise<QuranVerse
   return allVerses;
 }
 
-export async function fetchSurahInfo(surah: number): Promise<SurahInfo> {
-  const res = await fetch(`${BASE_URL}/chapters/${surah}?language=de`, {
+export async function fetchSurahInfo(surah: number, language: string = "de"): Promise<SurahInfo> {
+  const res = await fetch(`${BASE_URL}/chapters/${surah}?language=${language}`, {
     next: { revalidate: 86400 },
   });
 
@@ -170,6 +178,6 @@ export async function fetchVerseAudioWithTimings(
 }
 
 export const AVAILABLE_SURAHS = [
-  { id: 1, name_simple: "Al-Fatiha", name_german: "Die Eröffnung", name_arabic: "الفاتحة", verses_count: 7 },
-  { id: 2, name_simple: "Al-Baqarah", name_german: "Die Kuh", name_arabic: "البقرة", verses_count: 286 },
+  { id: 1, name_simple: "Al-Fatiha", name_german: "Die Eröffnung", name_english: "The Opening", name_arabic: "الفاتحة", verses_count: 7 },
+  { id: 2, name_simple: "Al-Baqarah", name_german: "Die Kuh", name_english: "The Cow", name_arabic: "البقرة", verses_count: 286 },
 ];

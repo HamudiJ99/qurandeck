@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/hooks";
 import { saveWord } from "@/lib/hooks";
 import Verse from "@/components/Verse";
 import RangeAudioPlayer from "@/components/RangeAudioPlayer";
-import { AVAILABLE_SURAHS, fetchChapterAudioData, fetchVerseAudioWithTimings, type WordTiming, type VerseAudioInfo } from "@/lib/quranApi";
+import { AVAILABLE_SURAHS, fetchAllVersesByChapter, fetchChapterAudioData, fetchVerseAudioWithTimings, type WordTiming, type VerseAudioInfo } from "@/lib/quranApi";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface SurahClientProps {
@@ -15,11 +15,15 @@ interface SurahClientProps {
   surahName: string;
 }
 
-export default function SurahClient({ verses, surahId, surahName }: SurahClientProps) {
+export default function SurahClient({ verses: initialVerses, surahId, surahName }: SurahClientProps) {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const audioRef = useRef<HTMLAudioElement>(null);
   const verseInfoRef = useRef<VerseAudioInfo | null>(null);
+
+  // Verses state - refetch when language changes
+  const [verses, setVerses] = useState<QuranVerse[]>(initialVerses);
+  const [isLoadingVerses, setIsLoadingVerses] = useState(false);
 
   // Audio state
   const [playingVerseIndex, setPlayingVerseIndex] = useState(-1);
@@ -36,6 +40,36 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
 
   const surahInfo = AVAILABLE_SURAHS.find((s) => s.id === surahId);
   const isAnythingPlaying = playingVerseIndex >= 0;
+  
+  // Get translated surah name based on current language
+  const translatedSurahName = lang === "en" ? surahInfo?.name_english : surahInfo?.name_german;
+
+  // Refetch verses when language changes
+  useEffect(() => {
+    let cancelled = false;
+    
+    async function loadVerses() {
+      setIsLoadingVerses(true);
+      try {
+        const newVerses = await fetchAllVersesByChapter(surahId, lang);
+        if (!cancelled) {
+          setVerses(newVerses);
+        }
+      } catch (error) {
+        console.error("Failed to fetch verses:", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingVerses(false);
+        }
+      }
+    }
+    
+    loadVerses();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [surahId, lang]);
 
   // Handle range player state changes
   const handleRangePlayingChange = useCallback((verseNumber: number | null, audioTime: number, timings: WordTiming[]) => {
@@ -270,11 +304,11 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
     <div className={`mx-auto max-w-3xl px-4 py-8 ${rangePlayingVerse !== null ? 'pb-24 sm:pb-8' : ''}`}>
       <audio ref={audioRef} preload="none" />
 
-      {/* Surah header with German + Arabic */}
+      {/* Surah header */}
       <div className="mb-8 text-center">
         <h1 className="arabic-text text-4xl text-primary">{surahName}</h1>
         <h2 className="mt-2 text-xl font-semibold text-foreground">
-          {surahInfo?.name_simple} – {surahInfo?.name_german}
+          {surahInfo?.name_simple} – {translatedSurahName}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {verses.length} {t("surah.verses")}
@@ -296,7 +330,12 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className={`space-y-4 ${isLoadingVerses ? 'opacity-50 pointer-events-none' : ''}`}>
+        {isLoadingVerses && (
+          <div className="flex justify-center py-4">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+          </div>
+        )}
         {verses.map((verse, index) => {
           const verseNumber = verse.verse_number;
           const isPlayingNormal = index === playingVerseIndex;
