@@ -280,45 +280,9 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
           {verses.length} {t("surah.verses")}
         </p>
 
-        {/* Play all / Pause / Stop buttons */}
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          {isAnythingPlaying ? (
-            <>
-              {/* Pause/Resume Button */}
-              {isPaused ? (
-                <button
-                  onClick={resumePlayback}
-                  className="inline-flex items-center justify-center rounded-xl bg-primary p-3 text-primary-foreground transition-colors hover:bg-primary/80"
-                  aria-label="Fortsetzen"
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </button>
-              ) : (
-                <button
-                  onClick={pausePlayback}
-                  className="inline-flex items-center justify-center rounded-xl bg-primary p-3 text-primary-foreground transition-colors hover:bg-primary/80"
-                  aria-label="Pause"
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                  </svg>
-                </button>
-              )}
-              
-              {/* Stop Button */}
-              <button
-                onClick={stopPlayback}
-                className="inline-flex items-center justify-center rounded-xl bg-red-500 p-3 text-white transition-colors hover:bg-red-600"
-                aria-label="Stoppen"
-              >
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 6h12v12H6z" />
-                </svg>
-              </button>
-            </>
-          ) : (
+        {/* Play all button */}
+        {!isAnythingPlaying && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <button
               onClick={playAll}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
@@ -328,8 +292,8 @@ export default function SurahClient({ verses, surahId, surahName }: SurahClientP
               </svg>
               {t("surah.playAll")}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
