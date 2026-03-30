@@ -5,7 +5,7 @@ import type { QuranWord, QuranVerse } from "@/types";
 import { useAuth } from "@/lib/hooks";
 import { saveWord } from "@/lib/hooks";
 import Verse from "@/components/Verse";
-import RangeAudioPlayer from "@/components/RangeAudioPlayer";
+import RangeAudioPlayer, { type RangeAudioPlayerRef } from "@/components/RangeAudioPlayer";
 import { AVAILABLE_SURAHS, fetchAllVersesByChapter, fetchChapterAudioData, fetchVerseAudioWithTimings, type WordTiming, type VerseAudioInfo } from "@/lib/quranApi";
 import { useLanguage } from "@/lib/LanguageContext";
 
@@ -20,6 +20,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
   const { t, lang } = useLanguage();
   const audioRef = useRef<HTMLAudioElement>(null);
   const verseInfoRef = useRef<VerseAudioInfo | null>(null);
+  const rangePlayerRef = useRef<RangeAudioPlayerRef>(null);
 
   // Verses state - refetch when language changes
   const [verses, setVerses] = useState<QuranVerse[]>(initialVerses);
@@ -37,6 +38,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
   const [rangePlayingVerse, setRangePlayingVerse] = useState<number | null>(null);
   const [rangeAudioTime, setRangeAudioTime] = useState(0);
   const [rangeWordTimings, setRangeWordTimings] = useState<WordTiming[]>([]);
+  const [rangeIsPaused, setRangeIsPaused] = useState(false);
 
   const surahInfo = AVAILABLE_SURAHS.find((s) => s.id === surahId);
   const isAnythingPlaying = playingVerseIndex >= 0;
@@ -95,8 +97,27 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     [user, surahId]
   );
 
-  // Stop all playback
+  // Stop all playback (both normal and range)
   const stopPlayback = useCallback(() => {
+    // Stop normal playback
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+    }
+    setPlayingVerseIndex(-1);
+    setContinuousMode(false);
+    setCurrentAudioTime(0);
+    setWordTimings([]);
+    setIsPaused(false);
+    verseInfoRef.current = null;
+    
+    // Also stop range playback if active
+    rangePlayerRef.current?.stopPlayback();
+    setRangeIsPaused(false);
+  }, []);
+
+  // Stop only normal playback (used when range starts)
+  const stopNormalPlayback = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
       audio.pause();
@@ -109,8 +130,20 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     verseInfoRef.current = null;
   }, []);
 
-  // Pause playback
+  // Handle when range playback starts - stop normal playback
+  const handleRangePlaybackStart = useCallback(() => {
+    stopNormalPlayback();
+    setRangeIsPaused(false);
+  }, [stopNormalPlayback]);
+
+  // Pause playback (works for both normal and range)
   const pausePlayback = useCallback(() => {
+    // Check if range is playing
+    if (rangePlayerRef.current?.isPlaying() && !rangePlayerRef.current?.isPaused()) {
+      rangePlayerRef.current.pausePlayback(); // Will call onPauseChange internally
+      return;
+    }
+    // Otherwise pause normal playback
     const audio = audioRef.current;
     if (audio && !audio.paused) {
       audio.pause();
@@ -118,8 +151,14 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     }
   }, []);
 
-  // Resume playback
+  // Resume playback (works for both normal and range)
   const resumePlayback = useCallback(() => {
+    // Check if range is paused
+    if (rangePlayerRef.current?.isPaused()) {
+      rangePlayerRef.current.resumePlayback(); // Will call onPauseChange internally
+      return;
+    }
+    // Otherwise resume normal playback
     const audio = audioRef.current;
     if (audio && isPaused) {
       audio.play().catch(() => {});
@@ -129,6 +168,9 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
 
   // Play a single verse (no auto-advance)
   const playVerse = useCallback((index: number) => {
+    // Stop range playback first
+    rangePlayerRef.current?.stopPlayback();
+    
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
@@ -142,6 +184,9 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
 
   // Play from a specific verse continuously (auto-advance)
   const playFromVerse = useCallback((index: number) => {
+    // Stop range playback first
+    rangePlayerRef.current?.stopPlayback();
+    
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
@@ -348,7 +393,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
                 verse={verse}
                 onWordClick={handleWordClick}
                 isPlaying={isPlaying}
-                isPaused={isPlayingNormal ? isPaused : false}
+                isPaused={isPlayingNormal ? isPaused : isPlayingRange ? rangeIsPaused : false}
                 audioTime={isPlayingNormal ? currentAudioTime : isPlayingRange ? rangeAudioTime : undefined}
                 wordTimings={isPlayingNormal ? wordTimings : isPlayingRange ? rangeWordTimings : undefined}
                 onPlay={() => playVerse(index)}
@@ -377,12 +422,15 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
 
       {/* Range Audio Player Modal */}
       <RangeAudioPlayer
+        ref={rangePlayerRef}
         surahId={surahId}
         totalVerses={verses.length}
         isOpen={showRangePlayer}
         onClose={() => setShowRangePlayer(false)}
         onOpen={() => setShowRangePlayer(true)}
         onPlayingChange={handleRangePlayingChange}
+        onPlaybackStart={handleRangePlaybackStart}
+        onPauseChange={setRangeIsPaused}
       />
     </div>
   );

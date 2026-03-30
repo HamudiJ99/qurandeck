@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { fetchChapterAudioData, fetchVerseAudioWithTimings, type VerseAudioInfo, type WordTiming } from "@/lib/quranApi";
+
+export interface RangeAudioPlayerRef {
+  stopPlayback: () => void;
+  pausePlayback: () => void;
+  resumePlayback: () => void;
+  isPlaying: () => boolean;
+  isPaused: () => boolean;
+}
 
 interface RangeAudioPlayerProps {
   surahId: number;
@@ -11,16 +19,20 @@ interface RangeAudioPlayerProps {
   onClose: () => void;
   onOpen: () => void;
   onPlayingChange?: (verseNumber: number | null, audioTime: number, wordTimings: WordTiming[]) => void;
+  onPlaybackStart?: () => void;
+  onPauseChange?: (isPaused: boolean) => void;
 }
 
-export default function RangeAudioPlayer({
+const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(function RangeAudioPlayer({
   surahId,
   totalVerses,
   isOpen,
   onClose,
   onOpen,
   onPlayingChange,
-}: RangeAudioPlayerProps) {
+  onPlaybackStart,
+  onPauseChange,
+}, ref) {
   const { t } = useLanguage();
   const audioRef = useRef<HTMLAudioElement>(null);
   const verseInfoRef = useRef<VerseAudioInfo | null>(null);
@@ -70,23 +82,35 @@ export default function RangeAudioPlayer({
     setCurrentWordTimings([]);
     verseInfoRef.current = null;
     onPlayingChange?.(null, 0, []);
-  }, [fromVerse, onPlayingChange]);
+    onPauseChange?.(false);
+  }, [fromVerse, onPlayingChange, onPauseChange]);
 
   const pausePlayback = useCallback(() => {
     const audio = audioRef.current;
     if (audio && !audio.paused) {
       audio.pause();
       setIsPaused(true);
+      onPauseChange?.(true);
     }
-  }, []);
+  }, [onPauseChange]);
 
   const resumePlayback = useCallback(() => {
     const audio = audioRef.current;
     if (audio && isPaused) {
       audio.play().catch(() => {});
       setIsPaused(false);
+      onPauseChange?.(false);
     }
-  }, [isPaused]);
+  }, [isPaused, onPauseChange]);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    stopPlayback,
+    pausePlayback,
+    resumePlayback,
+    isPlaying: () => isPlaying,
+    isPaused: () => isPaused,
+  }), [stopPlayback, pausePlayback, resumePlayback, isPlaying, isPaused]);
 
   const playVerse = useCallback(async (verseNum: number, seekTime?: number) => {
     const audio = audioRef.current;
@@ -140,6 +164,7 @@ export default function RangeAudioPlayer({
     if (isPaused) {
       resumePlayback();
     } else {
+      onPlaybackStart?.(); // Notify parent that range playback is starting
       setIsPlaying(true);
       setIsPaused(false);
       setCurrentVerse(fromVerse);
@@ -147,7 +172,7 @@ export default function RangeAudioPlayer({
       setCurrentSectionLoop(0);
       playVerse(fromVerse);
     }
-  }, [isPaused, resumePlayback, fromVerse, playVerse]);
+  }, [isPaused, resumePlayback, fromVerse, playVerse, onPlaybackStart]);
 
   // Monitor audio time and handle transitions + word highlighting
   useEffect(() => {
@@ -517,4 +542,6 @@ export default function RangeAudioPlayer({
       )}
     </>
   );
-}
+});
+
+export default RangeAudioPlayer;

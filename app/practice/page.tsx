@@ -118,7 +118,7 @@ export default function PracticePage() {
             <div ref={resetRef} className="relative">
               <button
                 onClick={() => setShowResetDialog(!showResetDialog)}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:border-amber-500 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                 title={t("practice.resetKnown")}
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
