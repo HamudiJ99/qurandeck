@@ -346,7 +346,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
   }, [playingVerseIndex, verses, continuousMode, stopPlayback, surahId]);
 
   return (
-    <div className={`mx-auto max-w-3xl px-4 py-8 ${rangePlayingVerse !== null ? 'pb-24 sm:pb-8' : ''}`}>
+    <div className={`mx-auto max-w-4xl px-4 py-8 ${rangePlayingVerse !== null ? 'pb-24 sm:pb-8' : ''}`}>
       <audio ref={audioRef} preload="none" />
 
       {/* Surah header */}

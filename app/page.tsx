@@ -8,7 +8,7 @@ export default function HomePage() {
   const { t } = useLanguage();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+    <div className="mx-auto max-w-4xl px-4 py-16 text-center">
       {/* Hero */}
       <h1 className="arabic-text mb-4 text-5xl text-primary">بِسْمِ ٱللَّهِ</h1>
       <h2 className="mb-2 text-3xl font-bold text-foreground">QuranDeck</h2>

@@ -260,11 +260,6 @@ export default function Flashcard({ words }: FlashcardProps) {
           {t("flash.know")}
         </button>
       </div>
-
-      {/* Swipe hint for mobile */}
-      <div className="mt-4 text-center text-xs text-muted-foreground sm:hidden">
-        ← {t("flash.stillLearning")} | {t("flash.know")} →
-      </div>
     </div>
   );
 }
