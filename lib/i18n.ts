@@ -172,6 +172,41 @@ export const translations = {
   "auth.googleSignIn": { de: "Mit Google anmelden", en: "Sign in with Google" },
   "auth.orContinueWith": { de: "Oder fortfahren mit", en: "Or continue with" },
 
+  // Forgot password
+  "auth.forgotPassword": { de: "Passwort vergessen", en: "Forgot Password" },
+  "auth.forgotPasswordSubtitle": {
+    de: "Gib deine E-Mail-Adresse ein. Wir senden dir einen Link zum Zurücksetzen.",
+    en: "Enter your email address. We'll send you a reset link.",
+  },
+  "auth.sendResetEmail": { de: "Reset-Link senden", en: "Send Reset Link" },
+  "auth.resetEmailSent": { de: "E-Mail gesendet!", en: "Email sent!" },
+  "auth.resetEmailSentDesc": {
+    de: "Bitte prüfe dein Postfach und klicke auf den Link in der E-Mail.",
+    en: "Please check your inbox and click the link in the email.",
+  },
+  "auth.backToLogin": { de: "Zurück zur Anmeldung", en: "Back to Sign In" },
+
+  // Email verification
+  "auth.checkYourEmail": { de: "E-Mail bestätigen", en: "Confirm Your Email" },
+  "auth.verificationSentDesc": {
+    de: "Wir haben eine Bestätigungs-E-Mail an folgende Adresse gesendet:",
+    en: "We sent a verification email to:",
+  },
+  "auth.continueToApp": { de: "Zur App", en: "Continue to App" },
+  "auth.verifyLater": {
+    de: "Du kannst die App auch sofort nutzen und deine E-Mail später bestätigen.",
+    en: "You can use the app right away and verify your email later.",
+  },
+  "auth.verifyEmailBanner": {
+    de: "Bitte bestätige deine E-Mail-Adresse.",
+    en: "Please verify your email address.",
+  },
+  "auth.resendEmail": { de: "E-Mail erneut senden", en: "Resend Email" },
+  "auth.verificationResent": {
+    de: "Bestätigungs-E-Mail wurde erneut gesendet!",
+    en: "Verification email resent!",
+  },
+
   // Profile
   "profile.title": { de: "Profil", en: "Profile" },
   "profile.changePhoto": { de: "Profilbild ändern", en: "Change Profile Photo" },

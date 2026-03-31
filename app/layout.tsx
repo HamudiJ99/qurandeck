@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
+import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { AuthProvider } from "@/lib/AuthContext";
 import { CookieProvider } from "@/lib/CookieContext";
@@ -38,6 +39,7 @@ export default function RootLayout({
           <CookieProvider>
             <AuthProvider>
               <Navbar />
+              <EmailVerificationBanner />
               <main className="flex-1">{children}</main>
               <Footer />
               <CookieBanner />

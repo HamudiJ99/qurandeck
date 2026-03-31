@@ -13,6 +13,8 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   deleteUser,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   type User,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/firebase/firebaseClient";
@@ -27,6 +29,8 @@ interface AuthContextType {
   updateDisplayName: (name: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   deleteAccount: (password?: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  sendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -39,6 +43,8 @@ const AuthContext = createContext<AuthContextType>({
   updateDisplayName: async () => {},
   changePassword: async () => {},
   deleteAccount: async () => {},
+  resetPassword: async () => {},
+  sendVerificationEmail: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const auth = getFirebaseAuth();
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName });
+    await sendEmailVerification(cred.user);
     // User wird automatisch durch onAuthStateChanged aktualisiert
   };
 
@@ -114,9 +121,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await deleteUser(currentUser);
   };
 
+  const resetPassword = async (email: string) => {
+    const auth = getFirebaseAuth();
+    await sendPasswordResetEmail(auth, email);
+  };
+
+  const sendVerificationEmail = async () => {
+    const auth = getFirebaseAuth();
+    if (auth.currentUser && !auth.currentUser.emailVerified) {
+      await sendEmailVerification(auth.currentUser);
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, register, login, signInWithGoogle, logout, updateDisplayName, changePassword, deleteAccount }}
+      value={{ user, loading, register, login, signInWithGoogle, logout, updateDisplayName, changePassword, deleteAccount, resetPassword, sendVerificationEmail }}
     >
       {children}
     </AuthContext.Provider>
