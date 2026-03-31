@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, useVocabulary, resetAllKnownWords } from "@/lib/hooks";
 import Flashcard from "@/components/Flashcard";
 import { useLanguage } from "@/lib/LanguageContext";
+import { AVAILABLE_SURAHS } from "@/lib/quranApi";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +13,15 @@ export default function PracticePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { words, loading: vocabLoading } = useVocabulary(user?.uid);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [resetting, setResetting] = useState(false);
   const [starFilter, setStarFilter] = useState<0 | 1 | 2 | "all">("all");
+  const [surahFilter, setSurahFilter] = useState<number | "all">("all");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showSurahMenu, setShowSurahMenu] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const surahMenuRef = useRef<HTMLDivElement>(null);
   const resetRef = useRef<HTMLDivElement>(null);
 
   const loading = authLoading || vocabLoading;
@@ -44,12 +48,15 @@ export default function PracticePage() {
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
         setShowFilterMenu(false);
       }
+      if (surahMenuRef.current && !surahMenuRef.current.contains(event.target as Node)) {
+        setShowSurahMenu(false);
+      }
       if (resetRef.current && !resetRef.current.contains(event.target as Node)) {
         setShowResetDialog(false);
       }
     };
 
-    if (showFilterMenu || showResetDialog) {
+    if (showFilterMenu || showSurahMenu || showResetDialog) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
@@ -57,11 +64,16 @@ export default function PracticePage() {
 
   // Only practice words that are "new" or "learning"
   const basePracticeWords = words.filter((w) => w.status === "new" || w.status === "learning");
-  
-  // Apply star filter
-  const practiceWords = starFilter === "all" 
-    ? basePracticeWords
-    : basePracticeWords.filter((w) => (w.stars || 0) === starFilter);
+
+  // Derive surahs user has practice words from
+  const availableSurahs = AVAILABLE_SURAHS.filter((s) =>
+    basePracticeWords.some((w) => w.surah === s.id)
+  );
+
+  // Apply filters
+  const practiceWords = basePracticeWords
+    .filter((w) => surahFilter === "all" || w.surah === surahFilter)
+    .filter((w) => starFilter === "all" || (w.stars || 0) === starFilter);
   
   const knownWordsCount = words.filter((w) => w.status === "known").length;
 
@@ -86,7 +98,54 @@ export default function PracticePage() {
       {/* Filter and Reset buttons - top right corner */}
       {!loading && basePracticeWords.length > 0 && (
         <div className="mb-4 flex justify-end gap-2">
-          {/* Filter button */}
+          {/* Surah filter */}
+          {availableSurahs.length > 0 && (
+            <div ref={surahMenuRef} className="relative">
+              <button
+                onClick={() => setShowSurahMenu(!showSurahMenu)}
+                className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:bg-muted"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span className="max-w-[140px] truncate">
+                  {surahFilter === "all"
+                    ? t("vocab.allSurahs")
+                    : `${surahFilter}. ${AVAILABLE_SURAHS.find(s => s.id === surahFilter)?.name_simple}`}
+                </span>
+                {surahFilter !== "all" && (
+                  <span className="flex h-2 w-2 rounded-full bg-primary"></span>
+                )}
+              </button>
+              {showSurahMenu && (
+                <div className="absolute right-0 top-12 z-20 max-h-64 w-52 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+                  <div className="p-2">
+                    <button
+                      onClick={() => { setSurahFilter("all"); setShowSurahMenu(false); }}
+                      className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                        surahFilter === "all" ? "bg-primary text-primary-foreground" : "text-foreground"
+                      }`}
+                    >
+                      {t("vocab.allSurahs")}
+                    </button>
+                    {availableSurahs.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => { setSurahFilter(s.id); setShowSurahMenu(false); }}
+                        className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                          surahFilter === s.id ? "bg-primary text-primary-foreground" : "text-foreground"
+                        }`}
+                      >
+                        {s.id}. {s.name_simple}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Star filter button */}
           <div ref={filterRef} className="relative">
             <button
               onClick={() => setShowFilterMenu(!showFilterMenu)}

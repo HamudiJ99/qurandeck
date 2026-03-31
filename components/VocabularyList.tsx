@@ -5,6 +5,7 @@ import type { VocabularyEntry } from "@/types";
 import { removeWord, updateWordStars } from "@/lib/hooks";
 import { useLanguage } from "@/lib/LanguageContext";
 import { translateToGerman } from "@/lib/wordDictionary";
+import { AVAILABLE_SURAHS } from "@/lib/quranApi";
 
 interface VocabularyListProps {
   words: VocabularyEntry[];
@@ -14,7 +15,10 @@ interface VocabularyListProps {
 export default function VocabularyList({ words, loading }: VocabularyListProps) {
   const { t, lang } = useLanguage();
   const [starFilter, setStarFilter] = useState<0 | 1 | 2 | 3 | "all">("all");
+  const [surahFilter, setSurahFilter] = useState<number | "all">("all");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showSurahMenu, setShowSurahMenu] = useState(false);
+  const surahMenuRef = useRef<HTMLDivElement>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -27,6 +31,9 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
         setShowFilterMenu(false);
       }
+      if (surahMenuRef.current && !surahMenuRef.current.contains(event.target as Node)) {
+        setShowSurahMenu(false);
+      }
       // Check if click is outside any open menu
       if (openMenuId) {
         const menuElement = menuRefs.current.get(openMenuId);
@@ -36,15 +43,20 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
       }
     };
 
-    if (showFilterMenu || openMenuId) {
+    if (showFilterMenu || showSurahMenu || openMenuId) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showFilterMenu, openMenuId]);
 
-  const filtered = starFilter === "all" 
-    ? words 
-    : words.filter((w) => (w.stars || 0) === starFilter);
+  // Derive surahs that the user actually has words from
+  const availableSurahs = AVAILABLE_SURAHS.filter((s) =>
+    words.some((w) => w.surah === s.id)
+  );
+
+  const filtered = words
+    .filter((w) => surahFilter === "all" || w.surah === surahFilter)
+    .filter((w) => starFilter === "all" || (w.stars || 0) === starFilter);
 
   const handleResetStars = async (wordId: string) => {
     await updateWordStars(wordId, 0);
@@ -112,6 +124,53 @@ export default function VocabularyList({ words, loading }: VocabularyListProps) 
     <div>
       {/* Filter and selection mode button */}
       <div className="mb-3 flex items-center justify-end gap-2">
+        {/* Surah filter */}
+        {availableSurahs.length > 0 && (
+          <div ref={surahMenuRef} className="relative">
+            <button
+              onClick={() => setShowSurahMenu(!showSurahMenu)}
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:bg-muted"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <span className="max-w-[140px] truncate">
+                {surahFilter === "all"
+                  ? t("vocab.allSurahs")
+                  : `${surahFilter}. ${AVAILABLE_SURAHS.find(s => s.id === surahFilter)?.name_simple}`}
+              </span>
+              {surahFilter !== "all" && (
+                <span className="flex h-2 w-2 rounded-full bg-primary"></span>
+              )}
+            </button>
+            {showSurahMenu && (
+              <div className="absolute right-0 top-12 z-20 max-h-64 w-52 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+                <div className="p-2">
+                  <button
+                    onClick={() => { setSurahFilter("all"); setShowSurahMenu(false); }}
+                    className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                      surahFilter === "all" ? "bg-primary text-primary-foreground" : "text-foreground"
+                    }`}
+                  >
+                    {t("vocab.allSurahs")}
+                  </button>
+                    {availableSurahs.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => { setSurahFilter(s.id); setShowSurahMenu(false); }}
+                      className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                        surahFilter === s.id ? "bg-primary text-primary-foreground" : "text-foreground"
+                      }`}
+                    >
+                      {s.id}. {s.name_simple}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div ref={filterRef} className="relative">
           <button
             onClick={() => setShowFilterMenu(!showFilterMenu)}

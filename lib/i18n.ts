@@ -64,6 +64,8 @@ export const translations = {
   },
   "vocab.noFilter": { de: "Keine Wörter mit diesem Filter.", en: "No words with this filter." },
   "vocab.surah": { de: "Sure", en: "Surah" },
+  "vocab.filterBySurah": { de: "Nach Sure filtern", en: "Filter by Surah" },
+  "vocab.allSurahs": { de: "Alle Suren", en: "All Surahs" },
   "vocab.ayah": { de: "Ayah", en: "Ayah" },
   "vocab.remove": { de: "Entfernen", en: "Remove" },
   "vocab.resetStars": { de: "Auf 0 Sterne zurücksetzen", en: "Reset to 0 stars" },
