@@ -165,6 +165,10 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
             onClick={handleWordClick}
           />
         ))}
+        {/* Ornamental verse end marker with Arabic-Indic numeral */}
+        <span className="inline-block select-none text-primary" style={{ unicodeBidi: "embed" }}>
+          {"\u06DD"}{verse.verse_number.toString().split("").map(d => String.fromCharCode(0x0660 + parseInt(d))).join("")}
+        </span>
       </div>
 
       {/* Translation */}

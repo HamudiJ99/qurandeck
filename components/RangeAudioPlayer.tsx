@@ -150,10 +150,11 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
 
   const resumePlayback = useCallback(() => {
     if (audioRef.current && isPausedRef.current) {
-      audioRef.current.play().catch(() => {});
       isPausedRef.current = false;
       setIsPaused(false);
       onPauseChange?.(false);
+      audioRef.current.play().catch(() => {});
+      // The highlighting loop checks isPausedRef on each frame and resumes automatically
     }
   }, [onPauseChange]);
 
@@ -180,8 +181,12 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
     let lastReportedTime = -1;
 
     const updateLoop = () => {
-      // Check if we should stop
-      if (!isPlayingRef.current || isPausedRef.current || !audioRef.current) {
+      // If paused, pause the loop but keep it alive so it can be restarted
+      if (!isPlayingRef.current || !audioRef.current) {
+        return;
+      }
+      if (isPausedRef.current) {
+        rafIdRef.current = requestAnimationFrame(updateLoop);
         return;
       }
       
