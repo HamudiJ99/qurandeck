@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
-:root,
-html.light {
+@custom-variant dark (&:is(.dark *));
+@custom-variant mocha (&:is(.mocha *));
+
+:root {
   --background: #faf9f6;
   --foreground: #1a1a1a;
   --card: #ffffff;
@@ -14,7 +16,7 @@ html.light {
   --accent: #d4a843;
 }
 
-html.dark {
+.dark {
   --background: #0f0f0f;
   --foreground: #e8e8e8;
   --card: #1a1a1a;
@@ -25,6 +27,19 @@ html.dark {
   --muted-foreground: #999999;
   --border: #333333;
   --accent: #d4a843;
+}
+
+.mocha {
+  --background: #f0ebe4;
+  --foreground: #3d342b;
+  --card: #f7f3ee;
+  --card-foreground: #3d342b;
+  --primary: #9a7b5a;
+  --primary-foreground: #ffffff;
+  --muted: #e3ddd4;
+  --muted-foreground: #6e5f52;
+  --border: #cfc5ba;
+  --accent: #ba996b;
 }
 
 @theme inline {
@@ -79,4 +94,21 @@ body {
 
 .flashcard-back {
   transform: rotateY(180deg);
+}
+
+/* Flashcard "Kann ich" button */
+.flashcard-know-btn {
+  background-color: rgb(39, 115, 84);
+}
+
+.flashcard-know-btn:hover {
+  background-color: rgb(32, 95, 69);
+}
+
+.mocha .flashcard-know-btn {
+  background-color: rgb(153, 122, 89);
+}
+
+.mocha .flashcard-know-btn:hover {
+  background-color: rgb(133, 102, 69);
 }

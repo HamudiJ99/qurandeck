@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth, useVocabulary, resetAllKnownWords } from "@/lib/hooks";
 import Flashcard from "@/components/Flashcard";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -8,6 +9,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 export const dynamic = "force-dynamic";
 
 export default function PracticePage() {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { words, loading: vocabLoading } = useVocabulary(user?.uid);
   const { t } = useLanguage();
@@ -19,6 +21,22 @@ export default function PracticePage() {
   const resetRef = useRef<HTMLDivElement>(null);
 
   const loading = authLoading || vocabLoading;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   // Close menu when clicking outside
   useEffect(() => {

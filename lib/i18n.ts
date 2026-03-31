@@ -139,6 +139,82 @@ export const translations = {
   "range.sectionLoop": { de: "Durchlauf", en: "Loop" },
   "range.verseLoop": { de: "Wiederholung", en: "Repeat" },
   "range.loading": { de: "Laden...", en: "Loading..." },
+
+  // Auth
+  "auth.login": { de: "Anmelden", en: "Sign In" },
+  "auth.register": { de: "Registrieren", en: "Sign Up" },
+  "auth.logout": { de: "Ausloggen", en: "Sign Out" },
+  "auth.email": { de: "E-Mail", en: "Email" },
+  "auth.password": { de: "Passwort", en: "Password" },
+  "auth.confirmPassword": { de: "Passwort bestätigen", en: "Confirm Password" },
+  "auth.displayName": { de: "Anzeigename", en: "Display Name" },
+  "auth.noAccount": { de: "Noch kein Konto?", en: "Don't have an account?" },
+  "auth.hasAccount": { de: "Bereits ein Konto?", en: "Already have an account?" },
+  "auth.registerHere": { de: "Registrieren", en: "Sign Up" },
+  "auth.loginHere": { de: "Anmelden", en: "Sign In" },
+  "auth.loginSubtitle": {
+    de: "Melde dich an, um deine Vokabeln und Lernfortschritte zu speichern.",
+    en: "Sign in to save your vocabulary and learning progress.",
+  },
+  "auth.registerSubtitle": {
+    de: "Erstelle ein Konto, um mit dem Lernen zu beginnen.",
+    en: "Create an account to start learning.",
+  },
+  "auth.passwordMismatch": { de: "Passwörter stimmen nicht überein.", en: "Passwords do not match." },
+  "auth.errorWeakPassword": { de: "Das Passwort muss mindestens 6 Zeichen lang sein.", en: "Password must be at least 6 characters." },
+  "auth.errorEmailInUse": { de: "Diese E-Mail-Adresse wird bereits verwendet.", en: "This email is already in use." },
+  "auth.errorInvalidEmail": { de: "Ungültige E-Mail-Adresse.", en: "Invalid email address." },
+  "auth.errorWrongPassword": { de: "Falsches Passwort.", en: "Incorrect password." },
+  "auth.errorUserNotFound": { de: "Kein Konto mit dieser E-Mail gefunden.", en: "No account found with this email." },
+  "auth.errorGeneric": { de: "Ein Fehler ist aufgetreten. Bitte versuche es erneut.", en: "An error occurred. Please try again." },
+
+  // Profile
+  "profile.title": { de: "Profil", en: "Profile" },
+  "profile.changePhoto": { de: "Profilbild ändern", en: "Change Profile Photo" },
+  "profile.displayName": { de: "Anzeigename", en: "Display Name" },
+  "profile.name": { de: "Name", en: "Name" },
+  "profile.saveProfile": { de: "Profil speichern", en: "Save Profile" },
+  "profile.saved": { de: "Gespeichert!", en: "Saved!" },
+  "profile.changePassword": { de: "Passwort ändern", en: "Change Password" },
+  "profile.changePasswordDesc": {
+    de: "Aus Sicherheitsgründen ist die Eingabe des aktuellen Passworts notwendig.",
+    en: "For security reasons, your current password is required.",
+  },
+  "profile.currentPassword": { de: "Aktuelles Passwort", en: "Current Password" },
+  "profile.newPassword": { de: "Neues Passwort", en: "New Password" },
+  "profile.savePassword": { de: "Passwort speichern", en: "Save Password" },
+  "profile.passwordChanged": { de: "Passwort geändert!", en: "Password changed!" },
+  "profile.deleteAccount": { de: "Account löschen", en: "Delete Account" },
+  "profile.deleteAccountDesc": {
+    de: "Diese Aktion kann nicht rückgängig gemacht werden. Dein Konto wird dauerhaft entfernt.",
+    en: "This action cannot be undone. Your account will be permanently deleted.",
+  },
+  "profile.deleteAccountBtn": { de: "Account endgültig löschen", en: "Delete Account Permanently" },
+  "profile.deleteConfirm": {
+    de: "Gib dein Passwort ein, um die Löschung zu bestätigen.",
+    en: "Enter your password to confirm deletion.",
+  },
+
+  // Settings
+  "settings.title": { de: "Einstellungen", en: "Settings" },
+  "settings.language": { de: "Sprache", en: "Language" },
+  "settings.languageDesc": {
+    de: "Wähle die Anzeigesprache der App.",
+    en: "Choose the display language of the app.",
+  },
+  "settings.german": { de: "Deutsch", en: "German" },
+  "settings.english": { de: "Englisch", en: "English" },
+  "settings.theme": { de: "Erscheinungsbild", en: "Appearance" },
+  "settings.themeDesc": { de: "Wähle das Farbschema der App.", en: "Choose the color scheme of the app." },
+  "settings.light": { de: "Hell", en: "Light" },
+  "settings.dark": { de: "Dunkel", en: "Dark" },
+  "settings.mocha": { de: "Mocha Mousse", en: "Mocha Mousse" },
+
+  // User menu
+  "menu.profile": { de: "Profil", en: "Profile" },
+  "menu.settings": { de: "Einstellungen", en: "Settings" },
+  "menu.darkMode": { de: "Dark Mode", en: "Dark Mode" },
+  "menu.lightMode": { de: "Light Mode", en: "Light Mode" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getFirebaseAuth, getFirebaseDb } from "@/firebase/firebaseClient";
-import { signInAnonymously, onAuthStateChanged, User } from "firebase/auth";
+import { getFirebaseDb } from "@/firebase/firebaseClient";
 import {
   collection,
   addDoc,
@@ -16,28 +15,8 @@ import {
 } from "firebase/firestore";
 import type { VocabularyEntry } from "@/types";
 
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        setLoading(false);
-      } else {
-        signInAnonymously(auth)
-          .then((cred) => setUser(cred.user))
-          .catch(console.error)
-          .finally(() => setLoading(false));
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-  return { user, loading };
-}
+// Re-export useAuth from AuthContext for backward compatibility
+export { useAuth } from "./AuthContext";
 
 export function useVocabulary(userId: string | undefined) {
   const [words, setWords] = useState<VocabularyEntry[]>([]);
