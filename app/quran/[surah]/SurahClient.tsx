@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/hooks";
 import { saveWord } from "@/lib/hooks";
 import Verse from "@/components/Verse";
 import RangeAudioPlayer, { type RangeAudioPlayerRef } from "@/components/RangeAudioPlayer";
-import { AVAILABLE_SURAHS, fetchAllVersesByChapter, fetchChapterAudioData, fetchVerseAudioWithTimings, type WordTiming, type VerseAudioInfo } from "@/lib/quranApi";
+import { AVAILABLE_SURAHS, fetchAllVersesByChapter, fetchChapterAudioData, fetchIndividualVerseAudio, fetchIndividualVerseAudioWithTimings, fetchVerseAudioWithTimings, type WordTiming, type IndividualVerseAudio, type VerseAudioInfo } from "@/lib/quranApi";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface SurahClientProps {
@@ -18,8 +18,8 @@ interface SurahClientProps {
 export default function SurahClient({ verses: initialVerses, surahId, surahName }: SurahClientProps) {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const verseInfoRef = useRef<VerseAudioInfo | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentVerseInfoRef = useRef<VerseAudioInfo | IndividualVerseAudio | null>(null);
   const rangePlayerRef = useRef<RangeAudioPlayerRef>(null);
 
   // Verses state - refetch when language changes
@@ -109,7 +109,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     setCurrentAudioTime(0);
     setWordTimings([]);
     setIsPaused(false);
-    verseInfoRef.current = null;
+    currentVerseInfoRef.current = null;
     
     // Also stop range playback if active
     rangePlayerRef.current?.stopPlayback();
@@ -127,7 +127,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     setCurrentAudioTime(0);
     setWordTimings([]);
     setIsPaused(false);
-    verseInfoRef.current = null;
+    currentVerseInfoRef.current = null;
   }, []);
 
   // Handle when range playback starts - stop normal playback
@@ -177,7 +177,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     setCurrentAudioTime(0);
     setWordTimings([]);
     setIsPaused(false);
-    verseInfoRef.current = null;
+    currentVerseInfoRef.current = null;
     setContinuousMode(false);
     setPlayingVerseIndex(index);
   }, []);
@@ -193,7 +193,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     setCurrentAudioTime(0);
     setWordTimings([]);
     setIsPaused(false);
-    verseInfoRef.current = null;
+    currentVerseInfoRef.current = null;
     setContinuousMode(true);
     setPlayingVerseIndex(index);
   }, []);
@@ -213,6 +213,8 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
   }, [surahId]);
 
   // Load and play audio when playingVerseIndex changes
+  // Single verse mode: Uses chapter audio with seeking (has word timings)
+  // Continuous mode: Uses individual verse audio files (mobile-friendly, no word timings)
   useEffect(() => {
     if (playingVerseIndex < 0 || playingVerseIndex >= verses.length) {
       if (playingVerseIndex >= verses.length) {
@@ -222,126 +224,250 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     }
 
     const verse = verses[playingVerseIndex];
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    // IMMEDIATELY pause audio to prevent hearing the next verse before seek
-    audio.pause();
-
     let cancelled = false;
+    let rafId: number | null = null;
 
-    // Fetch verse audio info with word timings
-    fetchVerseAudioWithTimings(surahId, verse.verse_key)
-      .then((info) => {
-        if (cancelled || !info) return;
-        
-        verseInfoRef.current = info;
-        setWordTimings(info.wordTimings);
+    // Clean up previous audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current.removeAttribute("src");
+    }
 
-        // Load chapter audio if not already loaded, then seek to verse start
-        const currentSrc = audio.src;
-        const targetSrc = info.audioUrl;
-        
-        const startPlayback = () => {
-          if (cancelled || !verseInfoRef.current) return;
-          // First seek, then wait for seeked event before playing
-          audio.currentTime = verseInfoRef.current.verseStartTime;
-          audio.addEventListener("seeked", function onSeeked() {
-            audio.removeEventListener("seeked", onSeeked);
-            if (!cancelled) {
-              audio.play().catch(() => !cancelled && stopPlayback());
-            }
-          }, { once: true });
-        };
+    const loadAndPlayVerse = async () => {
+      try {
+        if (!continuousMode) {
+          // ===== SINGLE VERSE MODE: Chapter audio with seeking (PC works fine) =====
+          const verseInfo = await fetchVerseAudioWithTimings(surahId, verse.verse_key);
+          if (cancelled || !verseInfo) return;
+          currentVerseInfoRef.current = verseInfo;
+          setWordTimings(verseInfo.wordTimings || []);
 
-        if (!currentSrc.includes(targetSrc.split('/').pop() || '')) {
-          audio.src = targetSrc;
-          audio.addEventListener("canplay", function onCanPlay() {
-            audio.removeEventListener("canplay", onCanPlay);
-            startPlayback();
-          }, { once: true });
-          audio.load();
-        } else {
-          // Audio already loaded, just seek
-          startPlayback();
-        }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setWordTimings([]);
-        verseInfoRef.current = null;
-      });
-
-    // Use requestAnimationFrame for precise timing
-    let rafId: number;
-    let stoppingAudio = false;
-    
-    const checkAudioTime = () => {
-      if (cancelled || !audio || audio.paused || stoppingAudio) return;
-      
-      const info = verseInfoRef.current;
-      if (!info) return;
-      
-      const absoluteTime = audio.currentTime;
-      const relativeTime = absoluteTime - info.verseStartTime;
-      setCurrentAudioTime(Math.max(0, relativeTime));
-
-      // Stop 100ms before verse end to ensure clean cut
-      if (absoluteTime >= info.verseEndTime - 0.1) {
-        stoppingAudio = true;
-        audio.pause();
-        
-        // Small delay to ensure audio is fully stopped before state change
-        setTimeout(() => {
-          if (cancelled) return;
-          
-          if (continuousMode && playingVerseIndex < verses.length - 1) {
-            // Move to next verse
-            setPlayingVerseIndex((prev) => prev + 1);
-          } else {
-            // Stop or end of surah
-            setCurrentAudioTime(0);
-            setWordTimings([]);
-            verseInfoRef.current = null;
-            setPlayingVerseIndex(-1);
+          // Create or reuse audio element
+          let audio = audioRef.current;
+          if (!audio) {
+            audio = new Audio();
+            audioRef.current = audio;
           }
-        }, 50);
-        return;
+          audio.preload = "auto";
+
+          // Wait for audio to be ready
+          await new Promise<void>((resolve, reject) => {
+            const onCanPlay = () => {
+              cleanup();
+              resolve();
+            };
+            const onError = (e: Event) => {
+              cleanup();
+              reject(e);
+            };
+            const cleanup = () => {
+              audio!.removeEventListener("canplaythrough", onCanPlay);
+              audio!.removeEventListener("error", onError);
+            };
+            
+            audio!.addEventListener("canplaythrough", onCanPlay, { once: true });
+            audio!.addEventListener("error", onError, { once: true });
+            
+            // Only load if URL changed
+            if (audio!.src !== verseInfo.audioUrl) {
+              audio!.src = verseInfo.audioUrl;
+              audio!.load();
+            } else {
+              cleanup();
+              resolve();
+            }
+            
+            // Timeout fallback
+            setTimeout(() => {
+              cleanup();
+              resolve();
+            }, 5000);
+          });
+
+          if (cancelled || audioRef.current !== audio) return;
+
+          // Seek to verse start
+          audio.currentTime = verseInfo.verseStartTime;
+
+          // Set up highlighting loop
+          const updateHighlighting = () => {
+            if (cancelled || !audioRef.current || audioRef.current.paused) return;
+            const currentTime = audioRef.current.currentTime;
+            // Calculate time relative to verse start
+            const relativeTime = currentTime - verseInfo.verseStartTime;
+            setCurrentAudioTime(relativeTime);
+
+            // Check if we've reached the end of the verse
+            if (currentTime >= verseInfo.verseEndTime) {
+              if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+              }
+              audioRef.current.pause();
+              setCurrentAudioTime(0);
+              setWordTimings([]);
+              currentVerseInfoRef.current = null;
+              setPlayingVerseIndex(-1);
+              return;
+            }
+
+            rafId = requestAnimationFrame(updateHighlighting);
+          };
+
+          // Handle play/pause for highlighting
+          const onPlay = () => {
+            if (!cancelled) {
+              rafId = requestAnimationFrame(updateHighlighting);
+            }
+          };
+
+          const onPause = () => {
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
+          };
+
+          audio.addEventListener("play", onPlay);
+          audio.addEventListener("pause", onPause);
+
+          // Start playback
+          await audio.play();
+
+          // Scroll verse into view
+          const el = document.getElementById(`verse-${verse.verse_key}`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        } else {
+          // ===== CONTINUOUS MODE: Individual verse files (mobile-friendly, no seeking) =====
+          const verseInfo = await fetchIndividualVerseAudioWithTimings(surahId, verse.verse_key);
+          if (cancelled || !verseInfo) return;
+
+          currentVerseInfoRef.current = verseInfo;
+          setWordTimings(verseInfo.wordTimings || []);
+          setCurrentAudioTime(0);
+
+          // Clean up previous audio completely
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = "";
+            audioRef.current.removeAttribute("src");
+          }
+
+          // Create fresh audio element for this verse
+          const audio = new Audio();
+          audio.preload = "auto";
+          audioRef.current = audio;
+
+          // Wait for audio to be ready
+          await new Promise<void>((resolve, reject) => {
+            const onCanPlay = () => {
+              cleanup();
+              resolve();
+            };
+            const onError = (e: Event) => {
+              cleanup();
+              reject(e);
+            };
+            const cleanup = () => {
+              audio.removeEventListener("canplaythrough", onCanPlay);
+              audio.removeEventListener("error", onError);
+            };
+            
+            audio.addEventListener("canplaythrough", onCanPlay, { once: true });
+            audio.addEventListener("error", onError, { once: true });
+            audio.src = verseInfo.audioUrl;
+            audio.load();
+            
+            // Timeout fallback
+            setTimeout(() => {
+              cleanup();
+              resolve();
+            }, 5000);
+          });
+
+          if (cancelled || audioRef.current !== audio) return;
+
+          // Set up highlighting loop
+          const updateHighlighting = () => {
+            if (cancelled || !audioRef.current || audioRef.current.paused) return;
+            const currentTime = audioRef.current.currentTime;
+            setCurrentAudioTime(currentTime);
+            rafId = requestAnimationFrame(updateHighlighting);
+          };
+
+          // Handle verse ended
+          const onEnded = () => {
+            if (cancelled) return;
+            
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
+            
+            setCurrentAudioTime(0);
+            
+            if (continuousMode && playingVerseIndex < verses.length - 1) {
+              // Move to next verse
+              setPlayingVerseIndex((prev) => prev + 1);
+            } else {
+              // Stop playback
+              setWordTimings([]);
+              currentVerseInfoRef.current = null;
+              setPlayingVerseIndex(-1);
+            }
+          };
+
+          // Handle play/pause for highlighting
+          const onPlay = () => {
+            if (!cancelled) {
+              rafId = requestAnimationFrame(updateHighlighting);
+            }
+          };
+
+          const onPause = () => {
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
+          };
+
+          audio.addEventListener("ended", onEnded);
+          audio.addEventListener("play", onPlay);
+          audio.addEventListener("pause", onPause);
+
+          // Start playback
+          audio.currentTime = 0;
+          await audio.play();
+
+          // Scroll verse into view
+          const el = document.getElementById(`verse-${verse.verse_key}`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+      } catch (error) {
+        console.error("Error playing verse:", error);
+        if (!cancelled) {
+          setWordTimings([]);
+          currentVerseInfoRef.current = null;
+          setPlayingVerseIndex(-1);
+        }
       }
-      
-      rafId = requestAnimationFrame(checkAudioTime);
     };
 
-    const onPlay = () => {
-      rafId = requestAnimationFrame(checkAudioTime);
-    };
-
-    const onPause = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-
-    const onEnded = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      setCurrentAudioTime(0);
-      setWordTimings([]);
-      verseInfoRef.current = null;
-      setPlayingVerseIndex(-1);
-    };
-
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
-
-    // Scroll the verse into view
-    const el = document.getElementById(`verse-${verse.verse_key}`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    loadAndPlayVerse();
 
     return () => {
       cancelled = true;
-      if (rafId) cancelAnimationFrame(rafId);
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current.removeAttribute("src");
+      }
     };
   }, [playingVerseIndex, verses, continuousMode, stopPlayback, surahId]);
 

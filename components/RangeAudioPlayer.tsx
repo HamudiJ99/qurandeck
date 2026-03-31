@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { fetchChapterAudioData, fetchVerseAudioWithTimings, type VerseAudioInfo, type WordTiming } from "@/lib/quranApi";
+import { fetchIndividualVerseAudioWithTimings, fetchChapterAudioData, type IndividualVerseAudio, type WordTiming } from "@/lib/quranApi";
 
 export interface RangeAudioPlayerRef {
   stopPlayback: () => void;
@@ -34,235 +34,355 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
   onPauseChange,
 }, ref) {
   const { t } = useLanguage();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const verseInfoRef = useRef<VerseAudioInfo | null>(null);
+  
+  // Use refs for audio state to avoid async state update issues
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentVerseRef = useRef<number>(1);
+  const currentWordTimingsRef = useRef<WordTiming[]>([]);
+  const isPlayingRef = useRef<boolean>(false);
+  const isPausedRef = useRef<boolean>(false);
+  const rafIdRef = useRef<number | null>(null);
+  const playbackAbortedRef = useRef<boolean>(false);
+  
+  // Playback settings (refs for use in callbacks)
+  const fromVerseRef = useRef<number>(1);
+  const toVerseRef = useRef<number>(Math.min(10, totalVerses));
+  const verseRepeatRef = useRef<number>(0);
+  const sectionRepeatRef = useRef<number>(0);
+  const currentVerseLoopRef = useRef<number>(0);
+  const currentSectionLoopRef = useRef<number>(0);
 
-  // Range selection
+  // UI state (for rendering)
   const [fromVerse, setFromVerse] = useState(1);
   const [toVerse, setToVerse] = useState(Math.min(10, totalVerses));
-
-  // Repeat settings
   const [sectionRepeat, setSectionRepeat] = useState(0);
   const [verseRepeat, setVerseRepeat] = useState(0);
-
-  // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentVerse, setCurrentVerse] = useState(1);
   const [currentVerseLoop, setCurrentVerseLoop] = useState(0);
   const [currentSectionLoop, setCurrentSectionLoop] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [currentWordTimings, setCurrentWordTimings] = useState<WordTiming[]>([]);
+
+  // Sync refs with state
+  useEffect(() => { fromVerseRef.current = fromVerse; }, [fromVerse]);
+  useEffect(() => { toVerseRef.current = toVerse; }, [toVerse]);
+  useEffect(() => { verseRepeatRef.current = verseRepeat; }, [verseRepeat]);
+  useEffect(() => { sectionRepeatRef.current = sectionRepeat; }, [sectionRepeat]);
 
   // Only reset settings when modal opens AND not playing/paused
   useEffect(() => {
     if (isOpen && !isPlaying && !isPaused) {
-      setFromVerse(1);
-      setToVerse(Math.min(10, totalVerses));
+      const defaultFrom = 1;
+      const defaultTo = Math.min(10, totalVerses);
+      setFromVerse(defaultFrom);
+      setToVerse(defaultTo);
       setSectionRepeat(0);
       setVerseRepeat(0);
+      fromVerseRef.current = defaultFrom;
+      toVerseRef.current = defaultTo;
+      sectionRepeatRef.current = 0;
+      verseRepeatRef.current = 0;
     }
   }, [isOpen, totalVerses, isPlaying, isPaused]);
 
-  // Preload audio data
+  // Preload chapter audio data for word timings
   useEffect(() => {
     fetchChapterAudioData(surahId);
   }, [surahId]);
 
-  const stopPlayback = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
+  // Clean up audio on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const stopHighlighting = useCallback(() => {
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
     }
+    onPlayingChange?.(null, 0, []);
+  }, [onPlayingChange]);
+
+  const stopPlayback = useCallback(() => {
+    playbackAbortedRef.current = true;
+    isPlayingRef.current = false;
+    isPausedRef.current = false;
+    
+    stopHighlighting();
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current.load(); // Reset the audio element
+    }
+    
+    currentVerseRef.current = fromVerseRef.current;
+    currentVerseLoopRef.current = 0;
+    currentSectionLoopRef.current = 0;
+    currentWordTimingsRef.current = [];
+    
     setIsPlaying(false);
     setIsPaused(false);
-    setCurrentVerse(fromVerse);
+    setCurrentVerse(fromVerseRef.current);
     setCurrentVerseLoop(0);
     setCurrentSectionLoop(0);
-    setCurrentWordTimings([]);
-    verseInfoRef.current = null;
-    onPlayingChange?.(null, 0, []);
     onPauseChange?.(false);
-  }, [fromVerse, onPlayingChange, onPauseChange]);
+  }, [stopHighlighting, onPauseChange]);
 
   const pausePlayback = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio && !audio.paused) {
-      audio.pause();
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      isPausedRef.current = true;
       setIsPaused(true);
       onPauseChange?.(true);
     }
   }, [onPauseChange]);
 
   const resumePlayback = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio && isPaused) {
-      audio.play().catch(() => {});
+    if (audioRef.current && isPausedRef.current) {
+      audioRef.current.play().catch(() => {});
+      isPausedRef.current = false;
       setIsPaused(false);
       onPauseChange?.(false);
     }
-  }, [isPaused, onPauseChange]);
+  }, [onPauseChange]);
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     stopPlayback,
     pausePlayback,
     resumePlayback,
-    isPlaying: () => isPlaying,
-    isPaused: () => isPaused,
-  }), [stopPlayback, pausePlayback, resumePlayback, isPlaying, isPaused]);
+    isPlaying: () => isPlayingRef.current,
+    isPaused: () => isPausedRef.current,
+  }), [stopPlayback, pausePlayback, resumePlayback]);
 
-  const playVerse = useCallback(async (verseNum: number, seekTime?: number) => {
+  // Start word highlighting loop - only call this AFTER audio is playing
+  const startHighlightingLoop = useCallback((verseNum: number, wordTimings: WordTiming[]) => {
+    // Cancel any existing loop
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    
     const audio = audioRef.current;
     if (!audio) return;
 
+    let lastReportedTime = -1;
+
+    const updateLoop = () => {
+      // Check if we should stop
+      if (!isPlayingRef.current || isPausedRef.current || !audioRef.current) {
+        return;
+      }
+      
+      const currentTime = audioRef.current.currentTime;
+      
+      // Only update if time changed significantly
+      if (Math.abs(currentTime - lastReportedTime) > 0.05) {
+        lastReportedTime = currentTime;
+        // Use the wordTimings passed to this function, not a ref or state
+        onPlayingChange?.(verseNum, currentTime, wordTimings);
+      }
+      
+      rafIdRef.current = requestAnimationFrame(updateLoop);
+    };
+
+    rafIdRef.current = requestAnimationFrame(updateLoop);
+  }, [onPlayingChange]);
+
+  // Play a specific verse
+  const playVerse = useCallback(async (verseNum: number): Promise<void> => {
+    // Check if playback was aborted
+    if (playbackAbortedRef.current) return;
+    
     setLoading(true);
+    
+    // Stop any current highlighting immediately
+    stopHighlighting();
+    
+    // Create a fresh audio element for each verse to avoid any buffer issues
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current.removeAttribute("src");
+      audioRef.current = null;
+    }
+    
     const verseKey = `${surahId}:${verseNum}`;
     
     try {
-      const info = await fetchVerseAudioWithTimings(surahId, verseKey);
-      if (!info) {
+      const verseInfo = await fetchIndividualVerseAudioWithTimings(surahId, verseKey);
+      if (!verseInfo || playbackAbortedRef.current) {
         setLoading(false);
         return;
       }
 
-      verseInfoRef.current = info;
-      setCurrentWordTimings(info.wordTimings);
+      // Update refs immediately (synchronous)
+      currentVerseRef.current = verseNum;
+      currentWordTimingsRef.current = verseInfo.wordTimings;
+      
+      // Update UI state
+      setCurrentVerse(verseNum);
 
-      const currentSrc = audio.src;
-      const targetSrc = info.audioUrl;
+      // Create new audio element
+      const audio = new Audio();
+      audio.preload = "auto";
+      audioRef.current = audio;
 
-      const startPlayback = () => {
-        if (!verseInfoRef.current) return;
-        const startTime = seekTime !== undefined ? seekTime : verseInfoRef.current.verseStartTime;
-        audio.currentTime = startTime;
-        audio.addEventListener("seeked", function onSeeked() {
-          audio.removeEventListener("seeked", onSeeked);
-          setLoading(false);
-          audio.play().catch(() => {
-            setIsPlaying(false);
-          });
-        }, { once: true });
-      };
-
-      if (!currentSrc.includes(targetSrc.split('/').pop() || '')) {
-        audio.src = targetSrc;
-        audio.addEventListener("canplay", function onCanPlay() {
-          audio.removeEventListener("canplay", onCanPlay);
-          startPlayback();
-        }, { once: true });
+      // Wait for audio to be fully ready
+      await new Promise<void>((resolve, reject) => {
+        const onCanPlayThrough = () => {
+          cleanup();
+          resolve();
+        };
+        
+        const onError = (e: Event) => {
+          cleanup();
+          reject(e);
+        };
+        
+        const cleanup = () => {
+          audio.removeEventListener("canplaythrough", onCanPlayThrough);
+          audio.removeEventListener("error", onError);
+        };
+        
+        audio.addEventListener("canplaythrough", onCanPlayThrough, { once: true });
+        audio.addEventListener("error", onError, { once: true });
+        
+        audio.src = verseInfo.audioUrl;
         audio.load();
-      } else {
-        startPlayback();
-      }
-    } catch {
-      setLoading(false);
-    }
-  }, [surahId]);
-
-  const handlePlay = useCallback(() => {
-    if (isPaused) {
-      resumePlayback();
-    } else {
-      onPlaybackStart?.(); // Notify parent that range playback is starting
-      setIsPlaying(true);
-      setIsPaused(false);
-      setCurrentVerse(fromVerse);
-      setCurrentVerseLoop(0);
-      setCurrentSectionLoop(0);
-      playVerse(fromVerse);
-    }
-  }, [isPaused, resumePlayback, fromVerse, playVerse, onPlaybackStart]);
-
-  // Monitor audio time and handle transitions + word highlighting
-  useEffect(() => {
-    if (!isPlaying || isPaused) return;
-
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    let rafId: number;
-    let transitioning = false;
-
-    const checkAudioTime = () => {
-      if (!audio || audio.paused || transitioning) return;
-
-      const info = verseInfoRef.current;
-      if (!info) return;
-
-      const absoluteTime = audio.currentTime;
-      const relativeTime = absoluteTime - info.verseStartTime;
-
-      // Update word highlighting
-      onPlayingChange?.(currentVerse, Math.max(0, relativeTime), currentWordTimings);
-
-      // Check if verse ended
-      if (absoluteTime >= info.verseEndTime - 0.1) {
-        transitioning = true;
-        audio.pause();
-
+        
+        // Timeout fallback
         setTimeout(() => {
-          if (!isPlaying) return;
+          cleanup();
+          resolve();
+        }, 5000);
+      });
 
-          // Check if we need to repeat this verse
-          if (currentVerseLoop < verseRepeat) {
-            setCurrentVerseLoop(prev => prev + 1);
-            playVerse(currentVerse);
-            transitioning = false;
-            return;
-          }
-
-          // Move to next verse
-          setCurrentVerseLoop(0);
-          const nextVerse = currentVerse + 1;
-
-          if (nextVerse <= toVerse) {
-            setCurrentVerse(nextVerse);
-            playVerse(nextVerse);
-            transitioning = false;
-          } else {
-            if (currentSectionLoop < sectionRepeat) {
-              setCurrentSectionLoop(prev => prev + 1);
-              setCurrentVerse(fromVerse);
-              playVerse(fromVerse);
-              transitioning = false;
-            } else {
-              stopPlayback();
-            }
-          }
-        }, 100);
+      // Check again if playback was aborted during loading
+      if (playbackAbortedRef.current || audioRef.current !== audio) {
+        audio.src = "";
         return;
       }
 
-      rafId = requestAnimationFrame(checkAudioTime);
+      setLoading(false);
+
+      // Set up ended handler for this audio
+      const handleEnded = () => {
+        if (playbackAbortedRef.current) return;
+        
+        // Stop highlighting for this verse
+        stopHighlighting();
+        
+        // Check if we need to repeat this verse
+        if (currentVerseLoopRef.current < verseRepeatRef.current) {
+          currentVerseLoopRef.current++;
+          setCurrentVerseLoop(currentVerseLoopRef.current);
+          playVerse(verseNum);
+          return;
+        }
+
+        // Move to next verse
+        currentVerseLoopRef.current = 0;
+        setCurrentVerseLoop(0);
+        
+        const nextVerse = verseNum + 1;
+
+        if (nextVerse <= toVerseRef.current) {
+          playVerse(nextVerse);
+        } else {
+          // Section ended
+          if (currentSectionLoopRef.current < sectionRepeatRef.current) {
+            currentSectionLoopRef.current++;
+            setCurrentSectionLoop(currentSectionLoopRef.current);
+            playVerse(fromVerseRef.current);
+          } else {
+            // All done
+            stopPlayback();
+          }
+        }
+      };
+
+      audio.addEventListener("ended", handleEnded, { once: true });
+
+      // Ensure we start from the beginning
+      audio.currentTime = 0;
+      
+      // Play the audio
+      await audio.play();
+      
+      // Only start highlighting AFTER play() succeeds
+      // Pass the word timings directly to avoid stale state/ref issues
+      startHighlightingLoop(verseNum, verseInfo.wordTimings);
+      
+    } catch (error) {
+      console.error("Error playing verse:", error);
+      setLoading(false);
+    }
+  }, [surahId, stopHighlighting, stopPlayback, startHighlightingLoop]);
+
+  const handlePlay = useCallback(() => {
+    if (isPausedRef.current) {
+      resumePlayback();
+    } else {
+      playbackAbortedRef.current = false;
+      isPlayingRef.current = true;
+      isPausedRef.current = false;
+      currentVerseLoopRef.current = 0;
+      currentSectionLoopRef.current = 0;
+      
+      setIsPlaying(true);
+      setIsPaused(false);
+      setCurrentVerseLoop(0);
+      setCurrentSectionLoop(0);
+      
+      onPlaybackStart?.();
+      playVerse(fromVerseRef.current);
+    }
+  }, [resumePlayback, playVerse, onPlaybackStart]);
+
+  // Handle pause/resume for highlighting
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onPause = () => {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
 
     const onPlay = () => {
-      rafId = requestAnimationFrame(checkAudioTime);
+      if (isPlayingRef.current && !isPausedRef.current && currentWordTimingsRef.current.length > 0) {
+        startHighlightingLoop(currentVerseRef.current, currentWordTimingsRef.current);
+      }
     };
 
-    const onPause = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-
-    audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
-
-    if (!audio.paused) {
-      rafId = requestAnimationFrame(checkAudioTime);
-    }
+    audio.addEventListener("play", onPlay);
 
     return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
     };
-  }, [isPlaying, isPaused, currentVerse, currentVerseLoop, verseRepeat, currentSectionLoop, sectionRepeat, toVerse, fromVerse, playVerse, stopPlayback, onPlayingChange, currentWordTimings]);
+  }, [startHighlightingLoop]);
 
   // Handle fromVerse/toVerse validation
   useEffect(() => {
     if (fromVerse > toVerse) {
       setToVerse(fromVerse);
+      toVerseRef.current = fromVerse;
     }
   }, [fromVerse, toVerse]);
 
@@ -278,9 +398,6 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
 
   return (
     <>
-      {/* Audio element - always rendered */}
-      <audio ref={audioRef} preload="none" />
-
       {/* Mini Player - shown when modal is closed but audio is playing/paused */}
       {!isOpen && isActive && (
         <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur-sm sm:bottom-6 sm:left-auto sm:right-6 sm:w-auto sm:rounded-full sm:border sm:px-4 sm:py-2">
@@ -376,7 +493,11 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
                 </label>
                 <select
                   value={fromVerse}
-                  onChange={(e) => setFromVerse(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setFromVerse(val);
+                    fromVerseRef.current = val;
+                  }}
                   disabled={isActive}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 sm:py-2.5"
                 >
@@ -391,7 +512,11 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
                 </label>
                 <select
                   value={toVerse}
-                  onChange={(e) => setToVerse(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setToVerse(val);
+                    toVerseRef.current = val;
+                  }}
                   disabled={isActive}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 sm:py-2.5"
                 >
@@ -413,7 +538,11 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
                 </label>
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
-                    onClick={() => setSectionRepeat(Math.max(0, sectionRepeat - 1))}
+                    onClick={() => {
+                      const val = Math.max(0, sectionRepeat - 1);
+                      setSectionRepeat(val);
+                      sectionRepeatRef.current = val;
+                    }}
                     disabled={isActive || sectionRepeat === 0}
                     className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:opacity-50 sm:h-8 sm:w-8"
                   >
@@ -421,7 +550,11 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
                   </button>
                   <span className="w-6 text-center text-sm font-medium text-foreground sm:w-8">{sectionRepeat}</span>
                   <button
-                    onClick={() => setSectionRepeat(sectionRepeat + 1)}
+                    onClick={() => {
+                      const val = sectionRepeat + 1;
+                      setSectionRepeat(val);
+                      sectionRepeatRef.current = val;
+                    }}
                     disabled={isActive}
                     className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:opacity-50 sm:h-8 sm:w-8"
                   >
@@ -438,7 +571,11 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
                 </label>
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
-                    onClick={() => setVerseRepeat(Math.max(0, verseRepeat - 1))}
+                    onClick={() => {
+                      const val = Math.max(0, verseRepeat - 1);
+                      setVerseRepeat(val);
+                      verseRepeatRef.current = val;
+                    }}
                     disabled={isActive || verseRepeat === 0}
                     className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:opacity-50 sm:h-8 sm:w-8"
                   >
@@ -446,7 +583,11 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
                   </button>
                   <span className="w-6 text-center text-sm font-medium text-foreground sm:w-8">{verseRepeat}</span>
                   <button
-                    onClick={() => setVerseRepeat(verseRepeat + 1)}
+                    onClick={() => {
+                      const val = verseRepeat + 1;
+                      setVerseRepeat(val);
+                      verseRepeatRef.current = val;
+                    }}
                     disabled={isActive}
                     className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:opacity-50 sm:h-8 sm:w-8"
                   >

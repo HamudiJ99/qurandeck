@@ -177,6 +177,138 @@ export async function fetchVerseAudioWithTimings(
   };
 }
 
+// Individual verse audio info (for mobile-friendly playback without seeking)
+export interface IndividualVerseAudio {
+  audioUrl: string;
+  wordTimings: WordTiming[];
+  duration: number; // Total duration in seconds
+}
+
+// Cache for individual verse audio URLs
+const individualVerseAudioCache = new Map<string, string>();
+
+export async function fetchIndividualVerseAudio(
+  chapter: number,
+  verseKey: string
+): Promise<IndividualVerseAudio | null> {
+  try {
+    // Get individual verse audio URL
+    let audioUrl = individualVerseAudioCache.get(verseKey);
+    if (!audioUrl) {
+      const res = await fetch(
+        `https://api.quran.com/api/v4/recitations/7/by_ayah/${verseKey}`,
+        { next: { revalidate: 86400 } }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const audioFile = data.audio_files?.[0];
+      if (!audioFile) return null;
+      audioUrl = `https://verses.quran.com/${audioFile.url}`;
+      individualVerseAudioCache.set(verseKey, audioUrl);
+    }
+
+    // IMPORTANT: Individual verse audio files do NOT have word-level timings
+    // The timing data from chapter audio doesn't match individual verse files
+    // Therefore we return empty word timings and estimate duration
+    // Word-by-word highlighting is only available with the full chapter audio player
+    
+    return {
+      audioUrl,
+      wordTimings: [], // No word timings for individual verse audio
+      duration: 0, // Will be determined by actual audio playback
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Fetch individual verse audio WITH word timings from chapter data
+// Uses individual verse files (mobile-friendly) but includes accurate word timings
+export async function fetchIndividualVerseAudioWithTimings(
+  chapter: number,
+  verseKey: string
+): Promise<IndividualVerseAudio | null> {
+  try {
+    // Get individual verse audio URL
+    let audioUrl = individualVerseAudioCache.get(verseKey);
+    if (!audioUrl) {
+      const res = await fetch(
+        `https://api.quran.com/api/v4/recitations/7/by_ayah/${verseKey}`,
+        { next: { revalidate: 86400 } }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const audioFile = data.audio_files?.[0];
+      if (!audioFile) return null;
+      audioUrl = `https://verses.quran.com/${audioFile.url}`;
+      individualVerseAudioCache.set(verseKey, audioUrl);
+    }
+
+    // Get word timings from chapter audio data
+    const chapterData = await fetchChapterAudioData(chapter);
+    let wordTimings: WordTiming[] = [];
+    
+    if (chapterData) {
+      const verseTiming = chapterData.verseTimings.find(
+        (vt) => vt.verse_key === verseKey
+      );
+      if (verseTiming) {
+        // Parse segments and adjust times to be relative to verse start (0-based)
+        const verseStartMs = verseTiming.timestamp_from;
+        for (const seg of verseTiming.segments) {
+          if (seg.length >= 3) {
+            wordTimings.push({
+              position: seg[0],
+              startTime: (seg[1] - verseStartMs) / 1000,
+              endTime: (seg[2] - verseStartMs) / 1000,
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      audioUrl,
+      wordTimings,
+      duration: 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Preload individual verse audio (returns promise that resolves when ready)
+export function preloadVerseAudio(audioUrl: string): Promise<HTMLAudioElement> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    
+    const onCanPlay = () => {
+      audio.removeEventListener("canplaythrough", onCanPlay);
+      audio.removeEventListener("error", onError);
+      resolve(audio);
+    };
+    
+    const onError = () => {
+      audio.removeEventListener("canplaythrough", onCanPlay);
+      audio.removeEventListener("error", onError);
+      reject(new Error("Failed to preload audio"));
+    };
+    
+    audio.addEventListener("canplaythrough", onCanPlay);
+    audio.addEventListener("error", onError);
+    audio.src = audioUrl;
+    audio.load();
+    
+    // Timeout fallback
+    setTimeout(() => {
+      audio.removeEventListener("canplaythrough", onCanPlay);
+      audio.removeEventListener("error", onError);
+      resolve(audio); // Resolve anyway after timeout
+    }, 5000);
+  });
+}
+
 export const AVAILABLE_SURAHS = [
   { id: 1, name_simple: "Al-Fatiha", name_german: "Die Eröffnung", name_english: "The Opening", name_arabic: "الفاتحة", verses_count: 7 },
   { id: 2, name_simple: "Al-Baqarah", name_german: "Die Kuh", name_english: "The Cow", name_arabic: "البقرة", verses_count: 286 },

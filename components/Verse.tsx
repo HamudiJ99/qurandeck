@@ -38,7 +38,8 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
       return -1;
     }
 
-    // Use real timing data if available
+    // Only use word highlighting if we have precise timing data
+    // Individual verse audio files don't have word timings (only chapter audio does)
     if (wordTimings && wordTimings.length > 0) {
       for (let i = 0; i < wordTimings.length; i++) {
         const timing = wordTimings[i];
@@ -59,12 +60,9 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
       return -1;
     }
 
-    // Fallback: estimate based on total audio duration and word count
-    // This is less accurate but better than fixed 0.5s per word
-    const estimatedTotalDuration = words.length * 0.6; // Average ~0.6s per word
-    const progress = audioTime / estimatedTotalDuration;
-    const idx = Math.floor(progress * words.length);
-    return Math.min(Math.max(idx, 0), words.length - 1);
+    // No word timings available - don't do word-level highlighting
+    // The verse border will still be highlighted to show it's playing
+    return -1;
   }, [isPlaying, audioTime, words.length, wordTimings]);
 
   const handleWordClick = useCallback(
