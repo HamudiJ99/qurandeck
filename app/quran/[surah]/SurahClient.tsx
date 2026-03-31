@@ -4,7 +4,9 @@ import { useCallback, useRef, useState, useEffect } from "react";
 import type { QuranWord, QuranVerse } from "@/types";
 import { useAuth } from "@/lib/hooks";
 import { saveWord } from "@/lib/hooks";
+import { useNotes, saveNote, deleteNote } from "@/lib/hooks";
 import Verse from "@/components/Verse";
+import NoteModal from "@/components/NoteModal";
 import RangeAudioPlayer, { type RangeAudioPlayerRef } from "@/components/RangeAudioPlayer";
 import { AVAILABLE_SURAHS, fetchAllVersesByChapter, fetchChapterAudioData, fetchIndividualVerseAudio, fetchIndividualVerseAudioWithTimings, fetchVerseAudioWithTimings, type WordTiming, type IndividualVerseAudio, type VerseAudioInfo } from "@/lib/quranApi";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -42,6 +44,12 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
 
   const surahInfo = AVAILABLE_SURAHS.find((s) => s.id === surahId);
   const isAnythingPlaying = playingVerseIndex >= 0;
+
+  // Notes state
+  const { notes } = useNotes(user?.uid);
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [noteModalVerseKey, setNoteModalVerseKey] = useState("");
+  const noteMap = new Map(notes.filter((n) => n.surah === surahId).map((n) => [n.verseKey, n]));
   
   // Get translated surah name based on current language
   const translatedSurahName = lang === "en" ? surahInfo?.name_english : surahInfo?.name_german;
@@ -96,6 +104,36 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
     },
     [user, surahId]
   );
+
+  const handleOpenNote = useCallback((verseKey: string) => {
+    if (!user) return;
+    setNoteModalVerseKey(verseKey);
+    setNoteModalOpen(true);
+  }, [user]);
+
+  const handleSaveNote = useCallback(
+    async (text: string) => {
+      if (!user || !noteModalVerseKey) return;
+      const [, ayah] = noteModalVerseKey.split(":");
+      await saveNote({
+        userId: user.uid,
+        surah: surahId,
+        ayah: parseInt(ayah, 10),
+        verseKey: noteModalVerseKey,
+        text,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    },
+    [user, surahId, noteModalVerseKey]
+  );
+
+  const handleDeleteNote = useCallback(async () => {
+    const existing = noteMap.get(noteModalVerseKey);
+    if (existing?.id) {
+      await deleteNote(existing.id);
+    }
+  }, [noteModalVerseKey, noteMap]);
 
   // Stop all playback (both normal and range)
   const stopPlayback = useCallback(() => {
@@ -527,6 +565,8 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
                 onStop={stopPlayback}
                 onPause={pausePlayback}
                 onResume={resumePlayback}
+                onNote={() => handleOpenNote(verse.verse_key)}
+                hasNote={noteMap.has(verse.verse_key)}
               />
             </div>
           );
@@ -557,6 +597,16 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
         onPlayingChange={handleRangePlayingChange}
         onPlaybackStart={handleRangePlaybackStart}
         onPauseChange={setRangeIsPaused}
+      />
+
+      {/* Note Modal */}
+      <NoteModal
+        isOpen={noteModalOpen}
+        verseKey={noteModalVerseKey}
+        initialText={noteMap.get(noteModalVerseKey)?.text || ""}
+        onSave={handleSaveNote}
+        onDelete={noteMap.has(noteModalVerseKey) ? handleDeleteNote : undefined}
+        onClose={() => setNoteModalOpen(false)}
       />
     </div>
   );

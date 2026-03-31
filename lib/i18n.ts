@@ -221,6 +221,7 @@ export const translations = {
   // User menu
   "menu.profile": { de: "Profil", en: "Profile" },
   "menu.settings": { de: "Einstellungen", en: "Settings" },
+  "menu.notes": { de: "Notizen", en: "Notes" },
   "menu.darkMode": { de: "Dark Mode", en: "Dark Mode" },
   "menu.lightMode": { de: "Light Mode", en: "Light Mode" },
 
@@ -264,6 +265,37 @@ export const translations = {
     en: "Here you can customize your cookie preferences. Some cookies are necessary for the website to function and cannot be disabled.",
   },
   "cookie.alwaysActive": { de: "Immer aktiv", en: "Always active" },
+
+  // Notes
+  "notes.title": { de: "Notizen", en: "Notes" },
+  "notes.subtitle": {
+    de: "Deine Notizen zu Quran-Versen.",
+    en: "Your notes on Quran verses.",
+  },
+  "notes.add": { de: "Notiz hinzufügen", en: "Add Note" },
+  "notes.edit": { de: "Notiz bearbeiten", en: "Edit Note" },
+  "notes.save": { de: "Speichern", en: "Save" },
+  "notes.saved": { de: "Notiz gespeichert!", en: "Note saved!" },
+  "notes.cancel": { de: "Abbrechen", en: "Cancel" },
+  "notes.delete": { de: "Löschen", en: "Delete" },
+  "notes.deleteConfirm": {
+    de: "Möchtest du diese Notiz wirklich löschen?",
+    en: "Do you really want to delete this note?",
+  },
+  "notes.deleted": { de: "Notiz gelöscht.", en: "Note deleted." },
+  "notes.empty": {
+    de: "Noch keine Notizen vorhanden. Klicke beim Quran-Lesen auf das Notiz-Symbol, um eine Notiz zu einem Vers hinzuzufügen.",
+    en: "No notes yet. Click the note icon while reading the Quran to add a note to a verse.",
+  },
+  "notes.placeholder": {
+    de: "Schreibe deine Gedanken oder Reflexion zu diesem Vers...",
+    en: "Write your thoughts or reflection on this verse...",
+  },
+  "notes.sortNewest": { de: "Neueste zuerst", en: "Newest first" },
+  "notes.sortOldest": { de: "Älteste zuerst", en: "Oldest first" },
+  "notes.verse": { de: "Vers", en: "Verse" },
+  "notes.filterBySurah": { de: "Nach Sure filtern", en: "Filter by Surah" },
+  "notes.allSurahs": { de: "Alle Suren", en: "All Surahs" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

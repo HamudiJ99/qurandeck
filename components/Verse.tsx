@@ -18,9 +18,11 @@ interface VerseProps {
   onStop: () => void;
   onPause?: () => void;
   onResume?: () => void;
+  onNote?: () => void;
+  hasNote?: boolean;
 }
 
-export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTime, wordTimings, onPlay, onPlayFromHere, onStop, onPause, onResume }: VerseProps) {
+export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTime, wordTimings, onPlay, onPlayFromHere, onStop, onPause, onResume, onNote, hasNote }: VerseProps) {
   const { t } = useLanguage();
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
 
@@ -152,6 +154,22 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
           <span className="text-xs text-primary animate-pulse">
             ✓ &ldquo;{savedFeedback}&rdquo; {t("surah.saved")}
           </span>
+        )}
+        {/* Note icon */}
+        {onNote && (
+          <button
+            onClick={onNote}
+            className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${
+              hasNote
+                ? "text-primary hover:bg-muted"
+                : "text-muted-foreground/40 hover:bg-muted hover:text-muted-foreground"
+            }`}
+            title={hasNote ? t("notes.edit") : t("notes.add")}
+          >
+            <svg className="h-5 w-5" fill={hasNote ? "currentColor" : "none"} stroke="currentColor" strokeWidth={hasNote ? 0 : 2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
         )}
       </div>
 

@@ -59,3 +59,14 @@ export interface AudioTimestamp {
   timestamp_from: number;
   timestamp_to: number;
 }
+
+export interface NoteEntry {
+  id?: string;
+  userId: string;
+  surah: number;
+  ayah: number;
+  verseKey: string;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+}

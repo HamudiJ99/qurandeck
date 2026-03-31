@@ -13,7 +13,7 @@ import {
   deleteDoc,
   onSnapshot,
 } from "firebase/firestore";
-import type { VocabularyEntry } from "@/types";
+import type { VocabularyEntry, NoteEntry } from "@/types";
 
 // Re-export useAuth from AuthContext for backward compatibility
 export { useAuth } from "./AuthContext";
@@ -95,4 +95,95 @@ export async function resetAllKnownWords(userId: string) {
 export async function removeWord(docId: string) {
   const db = getFirebaseDb();
   await deleteDoc(doc(db, "vocabulary", docId));
+}
+
+// ===== Notes =====
+
+export function useNotes(userId: string | undefined) {
+  const [notes, setNotes] = useState<NoteEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const db = getFirebaseDb();
+    const q = query(collection(db, "notes"), where("userId", "==", userId));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: NoteEntry[] = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as NoteEntry[];
+      items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      setNotes(items);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [userId]);
+
+  return { notes, loading };
+}
+
+export function useVerseNote(userId: string | undefined, verseKey: string) {
+  const [note, setNote] = useState<NoteEntry | null>(null);
+
+  useEffect(() => {
+    if (!userId || !verseKey) return;
+
+    const db = getFirebaseDb();
+    const q = query(
+      collection(db, "notes"),
+      where("userId", "==", userId),
+      where("verseKey", "==", verseKey)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const d = snapshot.docs[0];
+        setNote({ id: d.id, ...d.data() } as NoteEntry);
+      } else {
+        setNote(null);
+      }
+    });
+    return unsubscribe;
+  }, [userId, verseKey]);
+
+  return note;
+}
+
+export async function saveNote(entry: Omit<NoteEntry, "id">) {
+  const db = getFirebaseDb();
+  // Check if note already exists for this user + verse
+  const q = query(
+    collection(db, "notes"),
+    where("userId", "==", entry.userId),
+    where("verseKey", "==", entry.verseKey)
+  );
+  const existing = await getDocs(q);
+  if (!existing.empty) {
+    // Update existing note
+    const docRef = existing.docs[0].ref;
+    await updateDoc(docRef, {
+      text: entry.text,
+      updatedAt: Date.now(),
+    });
+    return;
+  }
+
+  await addDoc(collection(db, "notes"), {
+    ...entry,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+}
+
+export async function updateNote(docId: string, text: string) {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, "notes", docId), {
+    text,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deleteNote(docId: string) {
+  const db = getFirebaseDb();
+  await deleteDoc(doc(db, "notes", docId));
 }
