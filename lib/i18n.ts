@@ -227,6 +227,41 @@ export const translations = {
   "footer.imprint": { de: "Impressum", en: "Imprint" },
   "footer.privacy": { de: "Datenschutz", en: "Privacy Policy" },
   "footer.terms": { de: "AGB", en: "Terms of Service" },
+  "footer.cookies": { de: "Cookie-Einstellungen", en: "Cookie Settings" },
+
+  // Cookie Banner
+  "cookie.title": { de: "Cookie-Einstellungen", en: "Cookie Settings" },
+  "cookie.description": {
+    de: "Wir verwenden Cookies und ähnliche Technologien, um die Funktionalität unserer Website sicherzustellen und dein Nutzungserlebnis zu verbessern. Mehr dazu in unserer",
+    en: "We use cookies and similar technologies to ensure the functionality of our website and improve your experience. Learn more in our",
+  },
+  "cookie.moreInfo": { de: "und in den", en: "and in the" },
+  "cookie.settings": { de: "Cookie-Einstellungen", en: "Cookie Settings" },
+  "cookie.acceptAll": { de: "Alle akzeptieren", en: "Accept All" },
+  "cookie.necessaryOnly": { de: "Nur notwendige", en: "Necessary Only" },
+  "cookie.customize": { de: "Anpassen", en: "Customize" },
+  "cookie.save": { de: "Einstellungen speichern", en: "Save Settings" },
+  "cookie.necessary": { de: "Notwendig", en: "Necessary" },
+  "cookie.necessaryDesc": {
+    de: "Diese Cookies sind für den Betrieb der Website unerlässlich und können nicht deaktiviert werden. Sie ermöglichen grundlegende Funktionen wie Seitennavigation und Spracheinstellungen.",
+    en: "These cookies are essential for the website to function and cannot be disabled. They enable basic functions such as page navigation and language settings.",
+  },
+  "cookie.functional": { de: "Funktional", en: "Functional" },
+  "cookie.functionalDesc": {
+    de: "Diese Cookies ermöglichen erweiterte Funktionen wie Benutzeranmeldung, Speicherung deiner Vokabeln und Lernfortschritte. Ohne diese Cookies kannst du die App nur eingeschränkt nutzen.",
+    en: "These cookies enable advanced features such as user login, saving your vocabulary and learning progress. Without these cookies, you can only use the app with limited functionality.",
+  },
+  "cookie.analytics": { de: "Analyse", en: "Analytics" },
+  "cookie.analyticsDesc": {
+    de: "Diese Cookies helfen uns zu verstehen, wie Besucher mit der Website interagieren. Alle Daten werden anonymisiert erfasst.",
+    en: "These cookies help us understand how visitors interact with the website. All data is collected anonymously.",
+  },
+  "cookie.pageTitle": { de: "Cookie-Einstellungen", en: "Cookie Settings" },
+  "cookie.pageSubtitle": {
+    de: "Hier kannst du deine Cookie-Präferenzen anpassen. Einige Cookies sind für den Betrieb der Website notwendig und können nicht deaktiviert werden.",
+    en: "Here you can customize your cookie preferences. Some cookies are necessary for the website to function and cannot be disabled.",
+  },
+  "cookie.alwaysActive": { de: "Immer aktiv", en: "Always active" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

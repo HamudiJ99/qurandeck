@@ -35,6 +35,12 @@ export default function Footer() {
             >
               {t("footer.terms")}
             </Link>
+            <Link
+              href="/cookies"
+              className="text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              {t("footer.cookies")}
+            </Link>
           </div>
         </div>
       </div>
