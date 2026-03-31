@@ -13,7 +13,7 @@ export default function Navbar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
   const { user, logout } = useAuth();
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +89,16 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {/* Language selector for logged-out users */}
+          {!user && (
+            <button
+              onClick={() => setLang(lang === "de" ? "en" : "de")}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              {lang.toUpperCase()}
+            </button>
+          )}
 
           {/* Profile icon or Sign In button */}
           {user ? (
@@ -241,6 +251,19 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          
+          {/* Language selector in mobile menu for logged-out users */}
+          {!user && (
+            <button
+              onClick={() => {
+                setLang(lang === "de" ? "en" : "de");
+                setMobileOpen(false);
+              }}
+              className="block w-full py-3 text-left text-base font-medium text-muted-foreground"
+            >
+              {lang.toUpperCase()}
+            </button>
+          )}
         </div>
       )}
     </nav>

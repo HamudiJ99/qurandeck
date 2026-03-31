@@ -5,6 +5,8 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   updateProfile,
   updatePassword,
@@ -20,10 +22,11 @@ interface AuthContextType {
   loading: boolean;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  deleteAccount: (password: string) => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   register: async () => {},
   login: async () => {},
+  signInWithGoogle: async () => {},
   logout: async () => {},
   updateDisplayName: async () => {},
   changePassword: async () => {},
@@ -61,12 +65,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const auth = getFirebaseAuth();
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName });
-    setUser({ ...cred.user });
+    // User wird automatisch durch onAuthStateChanged aktualisiert
   };
 
   const login = async (email: string, password: string) => {
     const auth = getFirebaseAuth();
     await signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const signInWithGoogle = async () => {
+    const auth = getFirebaseAuth();
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
   };
 
   const logout = async () => {
@@ -75,29 +85,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateDisplayName = async (name: string) => {
-    if (!user) return;
-    await updateProfile(user, { displayName: name });
-    setUser({ ...user });
+    const auth = getFirebaseAuth();
+    if (!auth.currentUser) return;
+    await updateProfile(auth.currentUser, { displayName: name });
+    setUser(auth.currentUser);
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    if (!user || !user.email) return;
     const auth = getFirebaseAuth();
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
-    await reauthenticateWithCredential(user, credential);
-    await updatePassword(user, newPassword);
+    const currentUser = auth.currentUser;
+    if (!currentUser || !currentUser.email) return;
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+    await updatePassword(currentUser, newPassword);
   };
 
-  const deleteAccount = async (password: string) => {
-    if (!user || !user.email) return;
-    const credential = EmailAuthProvider.credential(user.email, password);
-    await reauthenticateWithCredential(user, credential);
-    await deleteUser(user);
+  const deleteAccount = async (password?: string) => {
+    const auth = getFirebaseAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    
+    // Only reauthenticate with password if user has password provider
+    if (password && currentUser.email) {
+      const credential = EmailAuthProvider.credential(currentUser.email, password);
+      await reauthenticateWithCredential(currentUser, credential);
+    }
+    
+    await deleteUser(currentUser);
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, register, login, logout, updateDisplayName, changePassword, deleteAccount }}
+      value={{ user, loading, register, login, signInWithGoogle, logout, updateDisplayName, changePassword, deleteAccount }}
     >
       {children}
     </AuthContext.Provider>

@@ -167,6 +167,8 @@ export const translations = {
   "auth.errorWrongPassword": { de: "Falsches Passwort.", en: "Incorrect password." },
   "auth.errorUserNotFound": { de: "Kein Konto mit dieser E-Mail gefunden.", en: "No account found with this email." },
   "auth.errorGeneric": { de: "Ein Fehler ist aufgetreten. Bitte versuche es erneut.", en: "An error occurred. Please try again." },
+  "auth.googleSignIn": { de: "Mit Google anmelden", en: "Sign in with Google" },
+  "auth.orContinueWith": { de: "Oder fortfahren mit", en: "Or continue with" },
 
   // Profile
   "profile.title": { de: "Profil", en: "Profile" },
@@ -194,6 +196,10 @@ export const translations = {
     de: "Gib dein Passwort ein, um die Löschung zu bestätigen.",
     en: "Enter your password to confirm deletion.",
   },
+  "profile.deleteConfirmNoPassword": {
+    de: "Bist du sicher, dass du deinen Account unwiderruflich löschen möchtest?",
+    en: "Are you sure you want to permanently delete your account?",
+  },
 
   // Settings
   "settings.title": { de: "Einstellungen", en: "Settings" },
@@ -215,6 +221,12 @@ export const translations = {
   "menu.settings": { de: "Einstellungen", en: "Settings" },
   "menu.darkMode": { de: "Dark Mode", en: "Dark Mode" },
   "menu.lightMode": { de: "Light Mode", en: "Light Mode" },
+
+  // Footer
+  "footer.rights": { de: "© 2026 QuranDeck. Alle Rechte vorbehalten.", en: "© 2026 QuranDeck. All rights reserved." },
+  "footer.imprint": { de: "Impressum", en: "Imprint" },
+  "footer.privacy": { de: "Datenschutz", en: "Privacy Policy" },
+  "footer.terms": { de: "AGB", en: "Terms of Service" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
