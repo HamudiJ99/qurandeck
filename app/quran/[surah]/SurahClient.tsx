@@ -53,6 +53,39 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
   const [noteModalVerseKey, setNoteModalVerseKey] = useState("");
   const noteMap = new Map(notes.filter((n) => n.surah === surahId).map((n) => [n.verseKey, n]));
   
+  // Bookmark state
+  const [bookmarkedVerse, setBookmarkedVerse] = useState<string | null>(null);
+
+  // Load bookmark from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("bookmark");
+      if (saved) {
+        const bm = JSON.parse(saved);
+        if (bm.surahId === surahId) {
+          setBookmarkedVerse(bm.verseKey);
+        } else {
+          setBookmarkedVerse(null);
+        }
+      }
+    } catch {
+      setBookmarkedVerse(null);
+    }
+  }, [surahId]);
+
+  const handleBookmark = useCallback((verseKey: string) => {
+    if (bookmarkedVerse === verseKey) {
+      // Remove bookmark
+      localStorage.removeItem("bookmark");
+      setBookmarkedVerse(null);
+    } else {
+      // Set bookmark
+      const bm = { surahId, verseKey };
+      localStorage.setItem("bookmark", JSON.stringify(bm));
+      setBookmarkedVerse(verseKey);
+    }
+  }, [bookmarkedVerse, surahId]);
+  
   // Get translated surah name based on current language
   const translatedSurahName = lang === "en" ? surahInfo?.name_english : surahInfo?.name_german;
 
@@ -569,6 +602,8 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
                 onResume={resumePlayback}
                 onNote={() => handleOpenNote(verse.verse_key)}
                 hasNote={noteMap.has(verse.verse_key)}
+                isBookmarked={bookmarkedVerse === verse.verse_key}
+                onBookmark={() => handleBookmark(verse.verse_key)}
               />
             </div>
           );

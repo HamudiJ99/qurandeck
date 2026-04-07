@@ -338,6 +338,23 @@ export const translations = {
   "notes.verse": { de: "Vers", en: "Verse" },
   "notes.filterBySurah": { de: "Nach Sure filtern", en: "Filter by Surah" },
   "notes.allSurahs": { de: "Alle Suren", en: "All Surahs" },
+
+  // Bookmark
+  "bookmark.set": { de: "Lesezeichen setzen", en: "Set Bookmark" },
+  "bookmark.remove": { de: "Lesezeichen entfernen", en: "Remove Bookmark" },
+  "bookmark.continue": { de: "Weiterlesen", en: "Continue Reading" },
+  "bookmark.saved": { de: "Lesezeichen gesetzt!", en: "Bookmark set!" },
+
+  // Copy verse
+  "verse.copy": { de: "Vers kopieren", en: "Copy Verse" },
+  "verse.copied": { de: "Kopiert!", en: "Copied!" },
+
+  // Font size
+  "settings.fontSize": { de: "Arabische Schriftgröße", en: "Arabic Font Size" },
+  "settings.fontSizeDesc": { de: "Passe die Größe des arabischen Textes an.", en: "Adjust the size of the Arabic text." },
+  "settings.fontSizeSmall": { de: "Klein", en: "Small" },
+  "settings.fontSizeMedium": { de: "Mittel", en: "Medium" },
+  "settings.fontSizeLarge": { de: "Groß", en: "Large" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

@@ -6,6 +6,7 @@ import CookieBanner from "@/components/CookieBanner";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ReciterProvider } from "@/lib/ReciterContext";
+import { FontSizeProvider } from "@/lib/FontSizeContext";
 import { AuthProvider } from "@/lib/AuthContext";
 import { CookieProvider } from "@/lib/CookieContext";
 import "./globals.css";
@@ -38,6 +39,7 @@ export default function RootLayout({
       >
         <LanguageProvider>
           <ReciterProvider>
+          <FontSizeProvider>
           <CookieProvider>
             <AuthProvider>
               <Navbar />
@@ -47,6 +49,7 @@ export default function RootLayout({
               <CookieBanner />
             </AuthProvider>
           </CookieProvider>
+          </FontSizeProvider>
           </ReciterProvider>
         </LanguageProvider>
       </body>

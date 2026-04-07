@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useReciter } from "@/lib/ReciterContext";
+import { useFontSize, type FontSize } from "@/lib/FontSizeContext";
 
 type Theme = "light" | "dark" | "mocha";
 
@@ -12,6 +13,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const { reciterId, setReciterId } = useReciter();
+  const { fontSize, setFontSize } = useFontSize();
   const router = useRouter();
   const [theme, setThemeState] = useState<Theme>("light");
 
@@ -38,8 +40,9 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-6 text-3xl font-bold text-foreground">{t("settings.title")}</h1>
 
+      <div className="space-y-6">
       {/* Theme setting */}
-      <div className="mb-6 rounded-xl border border-border bg-card p-6">
+      <div className="rounded-xl border border-border bg-card p-6">
         <div className="mb-4 flex items-center gap-3">
           <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
@@ -163,6 +166,36 @@ export default function SettingsPage() {
             {t("settings.reciter.husary")}
           </button>
         </div>
+      </div>
+
+      {/* Font size setting */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
+          </svg>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{t("settings.fontSize")}</h2>
+            <p className="text-sm text-muted-foreground">{t("settings.fontSizeDesc")}</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          {(["small", "medium", "large"] as FontSize[]).map((size) => (
+            <button
+              key={size}
+              onClick={() => setFontSize(size)}
+              className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+                fontSize === size
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background text-foreground hover:bg-muted"
+              }`}
+            >
+              <span className="arabic-text" style={{ fontSize: size === "small" ? "1rem" : size === "large" ? "1.75rem" : "1.25rem" }}>ب</span>
+              <span className="mt-1 block text-xs">{t(`settings.fontSize${size.charAt(0).toUpperCase() + size.slice(1)}` as "settings.fontSizeSmall" | "settings.fontSizeMedium" | "settings.fontSizeLarge")}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       </div>
     </div>
   );

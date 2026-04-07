@@ -5,6 +5,7 @@ import type { QuranVerse, QuranWord } from "@/types";
 import type { WordTiming } from "@/lib/quranApi";
 import Word from "./Word";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useFontSize } from "@/lib/FontSizeContext";
 
 interface VerseProps {
   verse: QuranVerse;
@@ -20,11 +21,15 @@ interface VerseProps {
   onResume?: () => void;
   onNote?: () => void;
   hasNote?: boolean;
+  isBookmarked?: boolean;
+  onBookmark?: () => void;
 }
 
-export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTime, wordTimings, onPlay, onPlayFromHere, onStop, onPause, onResume, onNote, hasNote }: VerseProps) {
+export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTime, wordTimings, onPlay, onPlayFromHere, onStop, onPause, onResume, onNote, hasNote, isBookmarked, onBookmark }: VerseProps) {
   const { t } = useLanguage();
+  const { fontSize } = useFontSize();
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   // Remove footnote numbers (superscript tags) from translation
   const rawTranslation = verse.translations?.[0]?.text || "";
@@ -75,6 +80,17 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
     },
     [onWordClick, verse.verse_key]
   );
+
+  const handleCopyVerse = useCallback(async () => {
+    const arabicText = verse.text_uthmani || words.map(w => w.text_uthmani).join(" ");
+    const translationText = translation.replace(/<[^>]*>/g, "");
+    const text = `${arabicText}\n\n${translationText}\n\n— ${verse.verse_key}`;
+    await navigator.clipboard.writeText(text);
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 1500);
+  }, [verse.text_uthmani, verse.verse_key, words, translation]);
+
+  const fontSizeClass = fontSize === "small" ? "text-xl sm:text-2xl" : fontSize === "large" ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl";
 
   return (
     <div className={`rounded-xl border bg-card p-5 transition-colors ${
@@ -155,26 +171,60 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
             ✓ &ldquo;{savedFeedback}&rdquo; {t("surah.saved")}
           </span>
         )}
-        {/* Note icon */}
-        {onNote && (
+        {copyFeedback && (
+          <span className="text-xs text-primary animate-pulse">
+            ✓ {t("verse.copied")}
+          </span>
+        )}
+        <div className="flex items-center gap-1">
+          {/* Copy button */}
           <button
-            onClick={onNote}
-            className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${
-              hasNote
-                ? "text-primary hover:bg-muted"
-                : "text-muted-foreground/40 hover:bg-muted hover:text-muted-foreground"
-            }`}
-            title={hasNote ? t("notes.edit") : t("notes.add")}
+            onClick={handleCopyVerse}
+            className="inline-flex items-center justify-center rounded-lg p-2 text-muted-foreground/40 transition-colors hover:bg-muted hover:text-muted-foreground"
+            title={t("verse.copy")}
           >
-            <svg className="h-5 w-5" fill={hasNote ? "currentColor" : "none"} stroke="currentColor" strokeWidth={hasNote ? 0 : 2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
           </button>
-        )}
+          {/* Bookmark button */}
+          {onBookmark && (
+            <button
+              onClick={onBookmark}
+              className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${
+                isBookmarked
+                  ? "text-primary hover:bg-muted"
+                  : "text-muted-foreground/40 hover:bg-muted hover:text-muted-foreground"
+              }`}
+              title={isBookmarked ? t("bookmark.remove") : t("bookmark.set")}
+            >
+              <svg className="h-4 w-4" fill={isBookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
+          )}
+          {/* Note icon */}
+          {onNote && (
+            <button
+              onClick={onNote}
+              className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${
+                hasNote
+                  ? "text-primary hover:bg-muted"
+                  : "text-muted-foreground/40 hover:bg-muted hover:text-muted-foreground"
+              }`}
+              title={hasNote ? t("notes.edit") : t("notes.add")}
+            >
+              <svg className="h-5 w-5" fill={hasNote ? "currentColor" : "none"} stroke="currentColor" strokeWidth={hasNote ? 0 : 2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Arabic text - word by word */}
-      <div className="arabic-text mb-4 text-right text-2xl leading-loose sm:text-3xl">
+      <div className={`arabic-text mb-4 text-right leading-loose ${fontSizeClass}`}>
         {words.map((word, index) => (
           <Word
             key={word.id || index}
