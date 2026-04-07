@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import { LanguageProvider } from "@/lib/LanguageContext";
+import { ReciterProvider } from "@/lib/ReciterContext";
 import { AuthProvider } from "@/lib/AuthContext";
 import { CookieProvider } from "@/lib/CookieContext";
 import "./globals.css";
@@ -36,6 +37,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground flex flex-col`}
       >
         <LanguageProvider>
+          <ReciterProvider>
           <CookieProvider>
             <AuthProvider>
               <Navbar />
@@ -45,6 +47,7 @@ export default function RootLayout({
               <CookieBanner />
             </AuthProvider>
           </CookieProvider>
+          </ReciterProvider>
         </LanguageProvider>
       </body>
     </html>

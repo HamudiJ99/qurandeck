@@ -184,7 +184,7 @@ export default function Verse({ verse, onWordClick, isPlaying, isPaused, audioTi
           />
         ))}
         {/* Ornamental verse end marker with Arabic-Indic numeral */}
-        <span className="inline-block select-none text-primary" style={{ unicodeBidi: "embed" }}>
+        <span className="inline-block whitespace-nowrap select-none text-primary align-middle" style={{ unicodeBidi: "embed", fontFamily: "inherit" }}>
           {"\u06DD"}{verse.verse_number.toString().split("").map(d => String.fromCharCode(0x0660 + parseInt(d))).join("")}
         </span>
       </div>

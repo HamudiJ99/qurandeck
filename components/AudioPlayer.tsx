@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useReciter } from "@/lib/ReciterContext";
 
 interface AudioPlayerProps {
   verseKey: string;
@@ -21,17 +22,15 @@ export default function AudioPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { reciter } = useReciter();
 
   // Build audio URL from verse key (format: "surah:ayah")
   useEffect(() => {
     const [surah, ayah] = verseKey.split(":");
-    const paddedSurah = surah.padStart(3, "0");
-    const paddedAyah = ayah.padStart(3, "0");
-    // Using Mishari Rashid al-Afasy recitation
     setAudioUrl(
-      `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${getAbsoluteVerseNumber(Number(surah), Number(ayah))}.mp3`
+      `https://cdn.islamic.network/quran/audio/128/${reciter.islamicNetworkSlug}/${getAbsoluteVerseNumber(Number(surah), Number(ayah))}.mp3`
     );
-  }, [verseKey]);
+  }, [verseKey, reciter]);
 
   const handlePlayPause = useCallback(async () => {
     const audio = audioRef.current;

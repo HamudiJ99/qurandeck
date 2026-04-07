@@ -10,6 +10,7 @@ import NoteModal from "@/components/NoteModal";
 import RangeAudioPlayer, { type RangeAudioPlayerRef } from "@/components/RangeAudioPlayer";
 import { AVAILABLE_SURAHS, fetchAllVersesByChapter, fetchChapterAudioData, fetchIndividualVerseAudio, fetchIndividualVerseAudioWithTimings, fetchVerseAudioWithTimings, type WordTiming, type IndividualVerseAudio, type VerseAudioInfo } from "@/lib/quranApi";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useReciter } from "@/lib/ReciterContext";
 
 interface SurahClientProps {
   verses: QuranVerse[];
@@ -20,6 +21,7 @@ interface SurahClientProps {
 export default function SurahClient({ verses: initialVerses, surahId, surahName }: SurahClientProps) {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
+  const { reciter } = useReciter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentVerseInfoRef = useRef<VerseAudioInfo | IndividualVerseAudio | null>(null);
   const rangePlayerRef = useRef<RangeAudioPlayerRef>(null);
@@ -247,8 +249,8 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
 
   // Preload chapter audio data on mount
   useEffect(() => {
-    fetchChapterAudioData(surahId);
-  }, [surahId]);
+    fetchChapterAudioData(surahId, reciter.qdcId);
+  }, [surahId, reciter]);
 
   // Load and play audio when playingVerseIndex changes
   // Single verse mode: Uses chapter audio with seeking (has word timings)
@@ -276,7 +278,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
       try {
         if (!continuousMode) {
           // ===== SINGLE VERSE MODE: Chapter audio with seeking (PC works fine) =====
-          const verseInfo = await fetchVerseAudioWithTimings(surahId, verse.verse_key);
+          const verseInfo = await fetchVerseAudioWithTimings(surahId, verse.verse_key, reciter.qdcId);
           if (cancelled || !verseInfo) return;
           currentVerseInfoRef.current = verseInfo;
           setWordTimings(verseInfo.wordTimings || []);
@@ -379,7 +381,7 @@ export default function SurahClient({ verses: initialVerses, surahId, surahName 
 
         } else {
           // ===== CONTINUOUS MODE: Individual verse files (mobile-friendly, no seeking) =====
-          const verseInfo = await fetchIndividualVerseAudioWithTimings(surahId, verse.verse_key);
+          const verseInfo = await fetchIndividualVerseAudioWithTimings(surahId, verse.verse_key, reciter.quranComId, reciter.qdcId);
           if (cancelled || !verseInfo) return;
 
           currentVerseInfoRef.current = verseInfo;

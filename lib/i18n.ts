@@ -252,6 +252,13 @@ export const translations = {
   "settings.light": { de: "Hell", en: "Light" },
   "settings.dark": { de: "Dunkel", en: "Dark" },
   "settings.mocha": { de: "Mocha Mousse", en: "Mocha Mousse" },
+  "settings.reciter": { de: "Rezitator", en: "Reciter" },
+  "settings.reciterDesc": {
+    de: "Wähle den Rezitator für die Quran-Wiedergabe.",
+    en: "Choose the reciter for Quran audio playback.",
+  },
+  "settings.reciter.alafasy": { de: "Mishari Rashid al-Afasy", en: "Mishari Rashid al-Afasy" },
+  "settings.reciter.husary": { de: "Mahmoud Khalil Al-Husary (lückenlos)", en: "Mahmoud Khalil Al-Husary (gapless)" },
 
   // User menu
   "menu.profile": { de: "Profil", en: "Profile" },

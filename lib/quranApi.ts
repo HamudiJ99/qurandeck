@@ -2,6 +2,14 @@ import type { QuranVerse, SurahInfo } from "@/types";
 
 const BASE_URL = "https://api.quran.com/api/v4";
 
+// Resolve audio URL: some reciters return absolute URLs (//mirrors.quranicaudio.com/...),
+// others return relative paths (Alafasy/mp3/...)
+function resolveAudioUrl(rawUrl: string): string {
+  if (rawUrl.startsWith("//")) return `https:${rawUrl}`;
+  if (rawUrl.startsWith("http")) return rawUrl;
+  return `https://verses.quran.com/${rawUrl}`;
+}
+
 // Translation IDs for different languages
 const TRANSLATION_IDS: Record<string, string> = {
   de: "27",  // German: Frank Bubenheim & Nadeem
@@ -71,11 +79,11 @@ export async function fetchAudioForVerse(
   const data = await res.json();
   const audioFile = data.audio_files?.[0];
   if (!audioFile) throw new Error("No audio found");
-  return `https://verses.quran.com/${audioFile.url}`;
+  return resolveAudioUrl(audioFile.url);
 }
 
-// Cache for chapter audio data (segments)
-const chapterAudioCache = new Map<number, ChapterAudioData>();
+// Cache for chapter audio data (segments) - keyed by "reciterId:chapter"
+const chapterAudioCache = new Map<string, ChapterAudioData>();
 
 interface VerseTiming {
   verse_key: string;
@@ -89,15 +97,16 @@ interface ChapterAudioData {
   verseTimings: VerseTiming[];
 }
 
-export async function fetchChapterAudioData(chapter: number): Promise<ChapterAudioData | null> {
+export async function fetchChapterAudioData(chapter: number, qdcReciterId: number = 7): Promise<ChapterAudioData | null> {
+  const cacheKey = `${qdcReciterId}:${chapter}`;
   // Check cache first
-  if (chapterAudioCache.has(chapter)) {
-    return chapterAudioCache.get(chapter)!;
+  if (chapterAudioCache.has(cacheKey)) {
+    return chapterAudioCache.get(cacheKey)!;
   }
 
   try {
     const res = await fetch(
-      `https://api.qurancdn.com/api/qdc/audio/reciters/7/audio_files?chapter=${chapter}&segments=true`,
+      `https://api.qurancdn.com/api/qdc/audio/reciters/${qdcReciterId}/audio_files?chapter=${chapter}&segments=true`,
       { next: { revalidate: 86400 } }
     );
 
@@ -112,7 +121,7 @@ export async function fetchChapterAudioData(chapter: number): Promise<ChapterAud
       verseTimings: audioFile.verse_timings || [],
     };
 
-    chapterAudioCache.set(chapter, chapterData);
+    chapterAudioCache.set(cacheKey, chapterData);
     return chapterData;
   } catch {
     return null;
@@ -134,9 +143,10 @@ export interface VerseAudioInfo {
 
 export async function fetchVerseAudioWithTimings(
   chapter: number,
-  verseKey: string
+  verseKey: string,
+  qdcReciterId: number = 7
 ): Promise<VerseAudioInfo | null> {
-  const chapterData = await fetchChapterAudioData(chapter);
+  const chapterData = await fetchChapterAudioData(chapter, qdcReciterId);
   if (!chapterData) return null;
 
   const verseTiming = chapterData.verseTimings.find(
@@ -184,27 +194,29 @@ export interface IndividualVerseAudio {
   duration: number; // Total duration in seconds
 }
 
-// Cache for individual verse audio URLs
+// Cache for individual verse audio URLs - keyed by "reciterId:verseKey"
 const individualVerseAudioCache = new Map<string, string>();
 
 export async function fetchIndividualVerseAudio(
   chapter: number,
-  verseKey: string
+  verseKey: string,
+  quranComReciterId: number = 7
 ): Promise<IndividualVerseAudio | null> {
   try {
+    const cacheKey = `${quranComReciterId}:${verseKey}`;
     // Get individual verse audio URL
-    let audioUrl = individualVerseAudioCache.get(verseKey);
+    let audioUrl = individualVerseAudioCache.get(cacheKey);
     if (!audioUrl) {
       const res = await fetch(
-        `https://api.quran.com/api/v4/recitations/7/by_ayah/${verseKey}`,
+        `https://api.quran.com/api/v4/recitations/${quranComReciterId}/by_ayah/${verseKey}`,
         { next: { revalidate: 86400 } }
       );
       if (!res.ok) return null;
       const data = await res.json();
       const audioFile = data.audio_files?.[0];
       if (!audioFile) return null;
-      audioUrl = `https://verses.quran.com/${audioFile.url}`;
-      individualVerseAudioCache.set(verseKey, audioUrl);
+      audioUrl = resolveAudioUrl(audioFile.url);
+      individualVerseAudioCache.set(cacheKey, audioUrl);
     }
 
     // IMPORTANT: Individual verse audio files do NOT have word-level timings
@@ -226,26 +238,29 @@ export async function fetchIndividualVerseAudio(
 // Uses individual verse files (mobile-friendly) but includes accurate word timings
 export async function fetchIndividualVerseAudioWithTimings(
   chapter: number,
-  verseKey: string
+  verseKey: string,
+  quranComReciterId: number = 7,
+  qdcReciterId: number = 7
 ): Promise<IndividualVerseAudio | null> {
   try {
+    const cacheKey = `${quranComReciterId}:${verseKey}`;
     // Get individual verse audio URL
-    let audioUrl = individualVerseAudioCache.get(verseKey);
+    let audioUrl = individualVerseAudioCache.get(cacheKey);
     if (!audioUrl) {
       const res = await fetch(
-        `https://api.quran.com/api/v4/recitations/7/by_ayah/${verseKey}`,
+        `https://api.quran.com/api/v4/recitations/${quranComReciterId}/by_ayah/${verseKey}`,
         { next: { revalidate: 86400 } }
       );
       if (!res.ok) return null;
       const data = await res.json();
       const audioFile = data.audio_files?.[0];
       if (!audioFile) return null;
-      audioUrl = `https://verses.quran.com/${audioFile.url}`;
-      individualVerseAudioCache.set(verseKey, audioUrl);
+      audioUrl = resolveAudioUrl(audioFile.url);
+      individualVerseAudioCache.set(cacheKey, audioUrl);
     }
 
     // Get word timings from chapter audio data
-    const chapterData = await fetchChapterAudioData(chapter);
+    const chapterData = await fetchChapterAudioData(chapter, qdcReciterId);
     let wordTimings: WordTiming[] = [];
     
     if (chapterData) {

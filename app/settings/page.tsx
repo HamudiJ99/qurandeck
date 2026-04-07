@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useReciter } from "@/lib/ReciterContext";
 
 type Theme = "light" | "dark" | "mocha";
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const { lang, setLang, t } = useLanguage();
+  const { reciterId, setReciterId } = useReciter();
   const router = useRouter();
   const [theme, setThemeState] = useState<Theme>("light");
 
@@ -124,6 +126,41 @@ export default function SettingsPage() {
             }`}
           >
              {t("settings.english")}
+          </button>
+        </div>
+      </div>
+
+      {/* Reciter setting */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6a7 7 0 010 14m0-14a7 7 0 000 14m6.364-3.636A9 9 0 105.636 5.636" />
+          </svg>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{t("settings.reciter")}</h2>
+            <p className="text-sm text-muted-foreground">{t("settings.reciterDesc")}</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setReciterId("alafasy")}
+            className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+              reciterId === "alafasy"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-background text-foreground hover:bg-muted"
+            }`}
+          >
+            {t("settings.reciter.alafasy")}
+          </button>
+          <button
+            onClick={() => setReciterId("husary")}
+            className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+              reciterId === "husary"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-background text-foreground hover:bg-muted"
+            }`}
+          >
+            {t("settings.reciter.husary")}
           </button>
         </div>
       </div>

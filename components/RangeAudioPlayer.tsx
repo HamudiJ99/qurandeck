@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useReciter } from "@/lib/ReciterContext";
 import { fetchIndividualVerseAudioWithTimings, fetchChapterAudioData, type IndividualVerseAudio, type WordTiming } from "@/lib/quranApi";
 
 export interface RangeAudioPlayerRef {
@@ -34,6 +35,7 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
   onPauseChange,
 }, ref) {
   const { t } = useLanguage();
+  const { reciter } = useReciter();
   
   // Use refs for audio state to avoid async state update issues
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -88,8 +90,8 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
 
   // Preload chapter audio data for word timings
   useEffect(() => {
-    fetchChapterAudioData(surahId);
-  }, [surahId]);
+    fetchChapterAudioData(surahId, reciter.qdcId);
+  }, [surahId, reciter]);
 
   // Clean up audio on unmount
   useEffect(() => {
@@ -226,7 +228,7 @@ const RangeAudioPlayer = forwardRef<RangeAudioPlayerRef, RangeAudioPlayerProps>(
     const verseKey = `${surahId}:${verseNum}`;
     
     try {
-      const verseInfo = await fetchIndividualVerseAudioWithTimings(surahId, verseKey);
+      const verseInfo = await fetchIndividualVerseAudioWithTimings(surahId, verseKey, reciter.quranComId, reciter.qdcId);
       if (!verseInfo || playbackAbortedRef.current) {
         setLoading(false);
         return;
