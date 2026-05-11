@@ -327,4 +327,5 @@ export function preloadVerseAudio(audioUrl: string): Promise<HTMLAudioElement> {
 export const AVAILABLE_SURAHS = [
   { id: 1, name_simple: "Al-Fatiha", name_german: "Die Eröffnung", name_english: "The Opening", name_arabic: "الفاتحة", verses_count: 7 },
   { id: 2, name_simple: "Al-Baqarah", name_german: "Die Kuh", name_english: "The Cow", name_arabic: "البقرة", verses_count: 286 },
+  { id: 3, name_simple: "Ali 'Imran", name_german: "Die Familie Imrans", name_english: "The Family of Imran", name_arabic: "آل عمران", verses_count: 200 },
 ];

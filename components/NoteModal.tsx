@@ -96,8 +96,9 @@ export default function NoteModal({ isOpen, verseKey, initialText, onSave, onDel
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={t("notes.placeholder")}
-              rows={5}
-              className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              rows={8}
+              className="w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              style={{ minHeight: '120px' }}
             />
           </div>
 
