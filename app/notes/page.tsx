@@ -20,6 +20,7 @@ export default function NotesPage() {
   const [filterSurah, setFilterSurah] = useState<number | null>(null);
   const [editingNote, setEditingNote] = useState<NoteEntry | null>(null);
   const [editText, setEditText] = useState("");
+  const [editHeight, setEditHeight] = useState(220);
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export default function NotesPage() {
   const handleStartEdit = (note: NoteEntry) => {
     setEditingNote(note);
     setEditText(note.text);
+    setEditHeight(220);
   };
 
   const handleSaveEdit = async () => {
@@ -231,11 +233,29 @@ export default function NotesPage() {
                     {isEditing ? (
                       /* Edit mode */
                       <div>
+                        <div className="mb-2 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditHeight((current) => Math.max(140, current - 60))}
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            title="Kleiner"
+                          >
+                            A-
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditHeight((current) => Math.min(640, current + 60))}
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            title="Groesser"
+                          >
+                            A+
+                          </button>
+                        </div>
                         <textarea
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
-                          rows={4}
-                          className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                          style={{ height: `${editHeight}px` }}
                           autoFocus
                         />
                         <div className="mt-3 flex items-center gap-2">
